@@ -33,6 +33,19 @@ A hosted assistant connects from its provider's servers, in three steps: it read
 - **Which email.** The email that matters is the one typed on the Cloudflare Access page, not the one the assistant's account uses. It has to be on the application's policy and in `ACCESS_USERS`.
 - **One application or two.** One Access application covers the whole site, `/mcp` included. If `/mcp` ever gets its own application, list both audience tags in `ACCESS_AUD`, separated by a comma.
 
+## A rate limit on the connector hostname
+
+The connector hostname has no Access application in front of it, so anyone can send it requests. The server answers its sign-in steps and refuses everything else that carries no valid token, and Cloudflare can stop a flood before it reaches the Mac. On the domain's **Security rules** page, create one **rate limiting rule**:
+
+| Setting | Value |
+| :-- | :-- |
+| When incoming requests match | Hostname equals `meetings-mcp.example.com` |
+| With the same characteristics | IP |
+| When rate exceeds | 100 requests in 10 seconds |
+| Then take action | Block, for 10 seconds |
+
+The Free plan allows one such rule per domain, and 10 seconds is its only period and its only duration. A paid plan can block for longer. An agent sends a few requests per question, far below the limit. The site's own hostname needs no rule: Access answers there before a request reaches the tunnel.
+
 ## Check it
 
 From anywhere, without signing in:
@@ -43,6 +56,12 @@ curl -s -o /dev/null -w "%{http_code}\n" https://meetings.example.com/.well-know
 curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{}' https://meetings.example.com/mcp    # 401: sign-in required
 curl -s https://meetings-mcp.example.com/.well-known/oauth-authorization-server | grep -c iss_parameter_supported    # 1: the connector's sign-in, ready for Codex
 curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{}' https://meetings-mcp.example.com/mcp    # 401: sign-in required there too
+```
+
+The rate limit, also from anywhere. About a hundred requests get the server's 401 and the rest Cloudflare's 429. Ten seconds later the 401 is back:
+
+```bash
+seq 160 | xargs -P 16 -I{} curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{}' https://meetings-mcp.example.com/mcp | sort | uniq -c
 ```
 
 On the Mac itself:

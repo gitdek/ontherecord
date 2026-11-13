@@ -215,7 +215,7 @@ The rest is in `docs/`:
 | [`docs/screen-search.md`](docs/screen-search.md) | Screen-frame indexing, the local and hosted picture models, what leaves the Mac, how matches are judged |
 | [`docs/speakers.md`](docs/speakers.md) | How voices get names, and the one-time setup |
 | [`docs/agents.md`](docs/agents.md) | The 17 tools, the workflow, connecting Claude, Codex and Hermes, the connector's sign-in |
-| [`docs/cloudflare.md`](docs/cloudflare.md) | The Access application, the tunnel, the connector hostname, Managed OAuth, service tokens, checks |
+| [`docs/cloudflare.md`](docs/cloudflare.md) | The Access application, the tunnel, the connector hostname and its rate limit, Managed OAuth, service tokens, checks |
 | [`docs/security.md`](docs/security.md) | Who gets in and what other sites and agents can do |
 | [`docs/recovery.md`](docs/recovery.md) | Backup verification, state recovery and restoring the meetings folder |
 | [`docs/deployment.md`](docs/deployment.md) | Updating the code, installer dry runs and rollout recovery |
