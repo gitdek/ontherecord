@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "meetings",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=8798",
+        "DATA_DIR=data/dev",
+        "EMBED_URL=",
+        "RERANK_URL=",
+        "BACKUP_DIR=",
+        "node",
+        "--watch",
+        "--env-file-if-exists=.env",
+        "server/index.ts"
+      ],
+      "port": 8798
+    }
+  ]
+}

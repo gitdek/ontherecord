@@ -1,0 +1,19 @@
+{
+  // Only a check: Node runs these files by stripping the types, so nothing is ever emitted.
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    // the tests import two of the web client's modules; their types are read, not checked
+    "allowJs": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "include": ["server/**/*.ts", "scripts/**/*.ts"]
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0a14" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>On the Record</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <script type="module" src="/js/main.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#app">Skip to content</a>
+    <!-- shared paint for every inline SVG on the page -->
+    <svg class="defs" aria-hidden="true" width="0" height="0">
+      <defs>
+        <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff" stop-opacity=".28" />
+          <stop offset=".45" stop-color="#fff" stop-opacity=".04" />
+          <stop offset="1" stop-color="#000" stop-opacity=".22" />
+        </linearGradient>
+        <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff" stop-opacity=".22" />
+          <stop offset=".5" stop-color="#fff" stop-opacity=".02" />
+          <stop offset="1" stop-color="#fff" stop-opacity=".08" />
+        </linearGradient>
+        <radialGradient id="tape" cx=".5" cy=".5" r=".5">
+          <stop offset=".55" stop-color="#4a3326" />
+          <stop offset="1" stop-color="#22160f" />
+        </radialGradient>
+        <filter id="glow" x="-50%" y="-200%" width="200%" height="500%">
+          <feGaussianBlur stdDeviation="3" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" />
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <header class="top">
+      <a class="brand" href="/" aria-label="On the Record, home">
+        <svg class="brand-mark" viewBox="0 0 44 28" aria-hidden="true">
+          <rect x="1" y="1" width="42" height="26" rx="5" class="bm-shell" />
+          <rect x="6" y="5" width="32" height="13" rx="2.5" class="bm-label" />
+          <rect x="11" y="9.5" width="22" height="7" rx="3.5" class="bm-window" />
+          <g class="bm-reel" style="transform-origin: 15.5px 13px"><circle cx="15.5" cy="13" r="2.6" /><path d="M15.5 10.4v5.2M12.9 13h5.2" /></g>
+          <g class="bm-reel" style="transform-origin: 28.5px 13px"><circle cx="28.5" cy="13" r="2.6" /><path d="M28.5 10.4v5.2M25.9 13h5.2" /></g>
+          <path d="M12 27l3-6h14l3 6" class="bm-foot" />
+        </svg>
+        <span class="brand-word">On the <em>Record</em></span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="/" data-nav="home">Shelf</a>
+        <a href="/actions" data-nav="actions">Board<span class="badge" id="open-count" hidden></span></a>
+        <a href="/notebook" data-nav="notebook">Notebook</a>
+        <a href="/people" data-nav="people">Cast</a>
+        <a href="/lab" data-nav="lab">Lab</a>
+      </nav>
+      <button class="search-btn" id="open-palette" type="button" aria-label="Search everything">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
+        <span>Search everything</span><kbd>⌘K</kbd>
+      </button>
+      <button class="theme-btn" id="theme" type="button" aria-label="Switch to light mode" title="Light / dark">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.7 4.7l1.6 1.6M17.7 17.7l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.7 19.3l1.6-1.6M17.7 6.3l1.6-1.6"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20.2 14.6A8.5 8.5 0 0 1 9.4 3.8a8.5 8.5 0 1 0 10.8 10.8z"/></svg>
+      </button>
+      <div class="presence" id="presence" aria-live="polite"></div>
+      <span class="live" id="live" title="Connecting…"><i></i><b>LIVE</b></span>
+    </header>
+
+    <main id="app" tabindex="-1"></main>
+    <div id="toasts" aria-live="polite"></div>
+    <div id="tooltip" role="tooltip" hidden></div>
+  </body>
+</html>

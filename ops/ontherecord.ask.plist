@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Local chat model that answers questions from the archive (unloads after 15 idle minutes). -->
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>ontherecord.ask</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/llama-server</string>
+		<string>--jinja</string>
+		<string>--model</string>
+		<string>__MODEL__</string>
+		<string>--host</string>
+		<string>127.0.0.1</string>
+		<string>--port</string>
+		<string>8801</string>
+		<string>--api-key-file</string>
+		<string>__KEYFILE__</string>
+		<string>--ctx-size</string>
+		<string>16384</string>
+		<string>--parallel</string>
+		<string>2</string>
+		<string>--no-webui</string>
+		<string>--sleep-idle-seconds</string>
+		<string>900</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>__ROOT__/data/logs/ask.log</string>
+	<key>StandardOutPath</key>
+	<string>__ROOT__/data/logs/ask.log</string>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>Umask</key>
+	<!-- 63 is 077: the logs launchd creates are this user's only -->
+	<integer>63</integer>
+</dict>
+</plist>

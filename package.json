@@ -1,0 +1,24 @@
+{
+  "name": "ontherecord",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "On the Record: a private meeting archive (notes, transcripts, video).",
+  "engines": {
+    "node": ">=24.2"
+  },
+  "scripts": {
+    "dev": "PORT=8798 DATA_DIR=data/dev EMBED_URL= RERANK_URL= BACKUP_DIR= node --watch --env-file-if-exists=.env server/index.ts",
+    "start": "NODE_ENV=production node --env-file-if-exists=.env server/index.ts",
+    "test": "node --test \"server/**/*.test.ts\" \"web/**/*.test.js\"",
+    "index-screens": "node --env-file-if-exists=.env scripts/index-screens.ts",
+    "check": "node --env-file-if-exists=.env server/check.ts",
+    "backup": "node --env-file-if-exists=.env scripts/backup.ts",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
+  }
+}

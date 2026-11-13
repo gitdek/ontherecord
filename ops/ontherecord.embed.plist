@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Local embedding model for meaning search. -->
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>ontherecord.embed</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/llama-server</string>
+		<string>--embedding</string>
+		<string>--model</string>
+		<string>__MODEL__</string>
+		<string>--host</string>
+		<string>127.0.0.1</string>
+		<string>--port</string>
+		<string>8799</string>
+		<string>--api-key-file</string>
+		<string>__KEYFILE__</string>
+		<string>--ctx-size</string>
+		<string>8192</string>
+		<string>--batch-size</string>
+		<string>8192</string>
+		<string>--ubatch-size</string>
+		<string>2048</string>
+		<string>--parallel</string>
+		<string>4</string>
+		<string>--no-webui</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>__ROOT__/data/logs/embed.log</string>
+	<key>StandardOutPath</key>
+	<string>__ROOT__/data/logs/embed.log</string>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>Umask</key>
+	<!-- 63 is 077: the logs launchd creates are this user's only -->
+	<integer>63</integer>
+</dict>
+</plist>

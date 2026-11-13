@@ -1,0 +1,12 @@
+# everything personal stays out of git: the meetings themselves live in MEETINGS_DIR,
+# and data/ holds caches (thumbnails, probes, vectors), shared state, backups, keys and logs
+data/*
+!data/.gitkeep
+# settings and anything that looks like a credential
+.env*
+!.env.example
+*.pem
+*.key
+credentials*.json
+.DS_Store
+node_modules

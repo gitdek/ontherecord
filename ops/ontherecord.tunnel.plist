@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Cloudflared runs the tunnel by its ID using its own credentials file. -->
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key>
+		<string>__HOME__</string>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>ontherecord.tunnel</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/cloudflared</string>
+		<string>tunnel</string>
+		<string>--no-autoupdate</string>
+		<string>run</string>
+		<string>--credentials-file</string>
+		<string>__CREDENTIALS__</string>
+		<string>--url</string>
+		<string>http://127.0.0.1:8797</string>
+		<string>__TUNNEL__</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>__ROOT__/data/logs/tunnel.log</string>
+	<key>StandardOutPath</key>
+	<string>__ROOT__/data/logs/tunnel.log</string>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>Umask</key>
+	<!-- 63 is 077: the logs launchd creates are this user's only -->
+	<integer>63</integer>
+</dict>
+</plist>
