@@ -15,6 +15,18 @@ const mirrorLine = (m) => {
   return html`Copy of the meetings folder in ${plural(m.folders, 'backup folder')}, ${when}: ${plural(m.files, 'file')}, ${m.copied} copied, ${m.waiting} still being written${m.failed ? html`, <span class="warn">${m.failed} not copied (the server log names them)</span>` : ', none failed'}.`
 }
 
+// One line on the transcripts this Mac writes for recordings that have none.
+export const transcriptsLine = (t) => {
+  if (!t.enabled) {
+    return t.problem
+      ? html`Transcripts for recordings that have none: off, because ${t.problem}.`
+      : html`Transcripts for recordings that have none: off. Set <code>TRANSCRIBE_PYTHON</code> to a Python that has MLX Whisper to have this Mac write them.`
+  }
+  const queued = t.waiting - (t.writing ? 1 : 0)
+  const now = [t.writing ? 'writing one now' : '', queued ? `${plural(queued, 'recording')} waiting` : t.writing ? '' : 'none waiting'].filter(Boolean).join(', ')
+  return html`Transcripts for recordings that have none: on, written on this Mac with <code>${t.model}</code>. ${now[0].toUpperCase() + now.slice(1)}${t.failed ? html`, <span class="warn">${plural(t.failed, 'recording')} failed (the meeting's Files tab says why)</span>` : ', none failed'}.`
+}
+
 // What to paste into an agent's chat so that it connects itself: the README's block, with this archive's own
 // addresses filled in.
 const connectBlock = (url) => `Connect yourself to On the Record, a private meeting archive, as a remote MCP server.
@@ -65,6 +77,7 @@ export async function mount(root, { app }) {
         <span><b>${fmtBytes(twinBytes)}</b> in originals that have a lighter twin</span>
       </div>
       ${lab.mirror ? html`<p class="muted small mirror-line">${mirrorLine(lab.mirror)}</p>` : ''}
+      ${lab.transcripts ? html`<p class="muted small transcripts-line">${transcriptsLine(lab.transcripts)}</p>` : ''}
     </header>
     ${best
       ? html`<section class="recipe">
@@ -142,6 +155,12 @@ export async function mount(root, { app }) {
   return {
     async onLibrary() {
       app.navigate('/lab', { replace: true })
+    },
+    // a transcript started, stopped or failed: the line about them catches up
+    async onWriting() {
+      const line = root.querySelector?.('.transcripts-line')
+      const fresh = line ? await get('/api/lab').catch(() => null) : null
+      if (line && fresh?.transcripts && root.isConnected !== false) line.innerHTML = String(transcriptsLine(fresh.transcripts))
     },
   }
 }

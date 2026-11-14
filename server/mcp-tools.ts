@@ -14,6 +14,7 @@ import type { Speakers } from './speakers.ts'
 import { STATUSES, type Proof, type Source, type Status, type Store } from './state.ts'
 import { actionEvent, addAction, allActions, canonical, ConflictError, filterActions, findAction, onHold, removeAction, statusOf, TaskError, updateAction, type ActionView, type BoardEvent } from './tasks.ts'
 import { fmtTime as fmt, parseTime } from './text.ts'
+import type { Transcriber } from './transcriber.ts'
 
 export type Ctx = {
   lib: () => Library
@@ -27,6 +28,8 @@ export type Ctx = {
   screens?: ScreenSearch
   reranker: Reranker
   speakers: Speakers
+  // a transcript being written on this Mac for a meeting that has none
+  transcriber?: Pick<Transcriber, 'view'>
   lookups: { meeting: (id: string) => string | undefined; task: (id: string) => string | undefined }
   notebookChanged: (kind: string, note: { id: string; title: string }, by: string) => void
 }
@@ -561,6 +564,18 @@ function notesAsText(m: Meeting): string {
   return out.join('\n')
 }
 
+// What get_transcript says for a meeting without one: whether the archive's Mac is writing one and when to call
+// again, or why writing it failed.
+function noTranscript(ctx: Ctx, m: Meeting) {
+  const w = ctx.transcriber?.view(m.id)
+  // about a tenth of the recording's length, and a minute at least
+  const minutes = Math.max(1, Math.round((m.duration ?? 0) / 600))
+  if (w?.state === 'running') return `this meeting has no transcript yet: one is being written on the archive's Mac now, which takes about ${minutes} minute${minutes === 1 ? '' : 's'} for this recording; call again after that`
+  if (w?.state === 'queued') return "this meeting has no transcript yet: one is waiting to be written on the archive's Mac, after the recordings ahead of it; call again later"
+  if (w?.state === 'failed') return `this meeting has no transcript yet: writing one on the archive's Mac failed (${w.error}); it is tried again when the server restarts`
+  return 'this meeting has no transcript yet'
+}
+
 // Names in person: that fit several people, each with who they could be: person:<id> names one of them.
 const ambiguousOut = (lib: Library, list: { name: string; ids: string[] }[] = []) =>
   list.length ? { ambiguous_people: list.map(({ name, ids }) => ({ name, people: ids.map((id) => ({ id, name: lib.people.byId.get(id)?.name ?? id })) })) } : {}
@@ -734,7 +749,7 @@ async function callTool(name: string, args: Record<string, unknown>, viewer: Vie
     case 'get_transcript': {
       const m = meetingOf(ctx, args.meeting_id)
       const src = m.primaryTranscript ? lib.transcripts.get(m.primaryTranscript) : undefined
-      if (!src) throw new TaskError('this meeting has no transcript yet')
+      if (!src) throw new TaskError(noTranscript(ctx, m))
       const clock = src.parsed.timeBase === 'clock'
       // times are on the meeting's clock, the one its notes use
       const off = offsetIn(m, src.id)

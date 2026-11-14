@@ -99,6 +99,38 @@ test('the Lab says in one line how the copy of the meetings folder went', async 
   assert.equal(await show(), 'No second copy of the meetings folder. Set <code>BACKUP_DIR</code> to keep one.')
 })
 
+test('the Lab says in one line whether this Mac writes transcripts, with what, and how many wait or failed', async (t) => {
+  let transcripts = { enabled: true, model: 'whisper-large-v3-turbo', waiting: 3, writing: true, failed: 1 }
+  t.mock.method(globalThis, 'fetch', async (path) => Response.json(path === '/api/lab' ? { meetings: [], ffmpeg: true, loose: [], transcripts } : { enabled: false }))
+  const show = async () => {
+    const root = new EventTarget()
+    await lab(root, { app: {} })
+    return root.innerHTML.match(/<p class="muted small transcripts-line">(.*?)<\/p>/s)?.[1]
+  }
+  const on = 'Transcripts for recordings that have none: on, written on this Mac with <code>whisper-large-v3-turbo</code>.'
+  assert.equal(await show(), `${on} Writing one now, 2 recordings waiting, <span class="warn">1 recording failed (the meeting's Files tab says why)</span>.`)
+  transcripts = { ...transcripts, waiting: 0, writing: false, failed: 0 }
+  assert.equal(await show(), `${on} None waiting, none failed.`)
+  transcripts = { ...transcripts, waiting: 1, writing: true }
+  assert.equal(await show(), `${on} Writing one now, none failed.`)
+  transcripts = { enabled: false, waiting: 0, writing: false, failed: 0 }
+  assert.equal(await show(), 'Transcripts for recordings that have none: off. Set <code>TRANSCRIBE_PYTHON</code> to a Python that has MLX Whisper to have this Mac write them.')
+  transcripts = { enabled: false, model: 'whisper-large-v3-turbo', problem: "the model mlx-community/whisper-large-v3-turbo isn't on this Mac (it is never downloaded by the server)", waiting: 0, writing: false, failed: 0 }
+  assert.equal(await show(), 'Transcripts for recordings that have none: off, because the model mlx-community/whisper-large-v3-turbo isn&#39;t on this Mac (it is never downloaded by the server).')
+})
+
+test('a meeting with no transcript says on its Files tab whether one is waiting, being written on the Mac, or failed and why', async () => {
+  const { filesView } = await import('../js/views/meeting.js')
+  const m = { videos: [], transcripts: [], docs: [], notesFile: null, date: '2026-11-03', title: 'Roast review' }
+  const line = (transcribing) => String(filesView({ ...m, transcribing }, null, 'Ada’s Mac')).match(/<p class="muted no-transcript">(.*?)<\/p>/s)?.[1]
+  assert.equal(line(null), 'No transcript yet.')
+  assert.equal(line({ state: 'queued' }), 'No transcript yet. One will be written on Ada’s Mac, after the recordings ahead of it.')
+  assert.equal(line({ state: 'running' }), 'No transcript yet. One is being written on Ada’s Mac now, and it shows up here on its own.')
+  assert.equal(line({ state: 'failed', error: 'the speech model stopped: <b>no</b> weights' }), 'No transcript yet. Writing one on Ada’s Mac failed (the speech model stopped: &lt;b&gt;no&lt;/b&gt; weights). It is tried again when the server restarts.')
+  // a meeting that has its transcript says nothing of the kind
+  assert.doesNotMatch(String(filesView({ ...m, transcripts: [{ id: 't', label: 'Transcript', words: 17, synced: true, files: [] }], transcribing: null }, null, 'Ada’s Mac')), /No transcript yet/)
+})
+
 test('the Lab lists the cautions of the library as it is now', async (t) => {
   t.mock.method(globalThis, 'fetch', async (path) => Response.json(path === '/api/lab' ? { meetings: [], ffmpeg: true, loose: [] } : { enabled: false }))
   const caution = "x - transcript.json can't be read, so what it holds is left out"

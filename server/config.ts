@@ -46,7 +46,13 @@ export type Config = {
   // telling speakers apart (scripts/diarize.py with sherpa-onnx) and reading their names off Meet tiles
   // (scripts/read-text.swift); an empty python turns it off
   diarize: { python: string; segmentation: string; embedding: string; script: string; readText: string }
+  // writing a transcript for a recording that has none (scripts/transcribe.py with MLX Whisper, on this Mac): the
+  // Python that has mlx_whisper, the model (a folder, or a name in the Hugging Face cache) and, optionally, the
+  // language spoken; an empty python turns it off
+  transcribe: { python: string; script: string; model: string; language: string }
 }
+
+const TRANSCRIBE_MODEL = 'mlx-community/whisper-large-v3-turbo'
 
 // Screen search: SCREEN_SEARCH=1 (or gemini) sends picked frames and screen searches to Gemini Embedding 2 through
 // OpenRouter; local keeps them on this Mac, with the picture model at SCREENS_URL, and never reads the OpenRouter
@@ -84,6 +90,8 @@ export function configFrom(env: Record<string, string | undefined>): Config {
   }
   const root = join(import.meta.dirname, '..')
   const models = join(homedir(), 'models/diarization')
+  // a model given as a path (~/models/whisper, ./whisper) is a folder; anything else is a name in the Hugging Face cache
+  const model = (env.TRANSCRIBE_MODEL ?? '').trim() || TRANSCRIBE_MODEL
   const port = Number(env.PORT ?? 8797)
   const localHosts = [`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`]
   const publicUrl = (env.PUBLIC_URL ?? `http://127.0.0.1:${port}`).replace(/\/+$/, '')
@@ -122,6 +130,12 @@ export function configFrom(env: Record<string, string | undefined>): Config {
       embedding: resolve(env.DIARIZE_EMBEDDING ?? join(models, 'embedding/nemo_en_titanet_large.onnx')),
       script: join(root, 'scripts/diarize.py'),
       readText: join(root, 'scripts/read-text.swift'),
+    },
+    transcribe: {
+      python: (env.TRANSCRIBE_PYTHON ?? '').trim(),
+      script: join(root, 'scripts/transcribe.py'),
+      model: /^(?:~\/|\.{1,2}\/|\/)/.test(model) ? resolve(model.replace(/^~\//, `${homedir()}/`)) : model,
+      language: (env.TRANSCRIBE_LANGUAGE ?? '').trim().toLowerCase(),
     },
   }
 }

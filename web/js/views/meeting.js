@@ -454,11 +454,22 @@ export async function mount(root, { app, params, query, data }) {
   if (query.get('topic')) setTimeout(() => flashTopic(query.get('topic')), 250)
   if (tab === 'excerpt') void loadExcerpt()
 
+  // Where a transcript being written for this meeting stands, in the Files tab's line.
+  async function paintTranscribing() {
+    if (m.transcripts.length) return
+    const fresh = await get(`/api/meetings/${encodeURIComponent(m.id)}`)
+    if (!root.isConnected) return
+    m.transcribing = fresh.transcribing
+    const line = $('.no-transcript', root)
+    if (line) line.innerHTML = String(noTranscript(m.transcribing, macOf(app)))
+  }
+
   return {
     async onResume() {
       await reloadTranscript(true)
       if (root.isConnected) deck.refresh()
       await refreshActions()
+      await paintTranscribing()
     },
     cleanup() {
       excerptRequest?.abort()
@@ -480,6 +491,10 @@ export async function mount(root, { app, params, query, data }) {
     },
     async onSpeakers(d) {
       if (tMeta && (d.transcripts ?? []).includes(tMeta.id)) await reloadTranscript()
+    },
+    // a transcript for this meeting started, stopped or failed on the Mac: the Files tab says where it stands
+    async onWriting(d) {
+      if ((d.meetings ?? []).includes(m.id)) await paintTranscribing()
     },
     async onThumbs(d) {
       if (!m.videos.some((v) => v.fileId === d.fileId)) return
@@ -1017,7 +1032,18 @@ function transcriptPane(pane, o) {
 
 // ---------- files ----------
 
-function filesView(m, current, mac) {
+// What the Files tab says while a meeting has no transcript: one being written on the Mac, one waiting its turn,
+// or why writing one failed.
+export const noTranscript = (job, mac) =>
+  job?.state === 'running'
+    ? html`No transcript yet. One is being written on ${mac} now, and it shows up here on its own.`
+    : job?.state === 'queued'
+      ? html`No transcript yet. One will be written on ${mac}, after the recordings ahead of it.`
+      : job?.state === 'failed'
+        ? html`No transcript yet. Writing one on ${mac} failed (${job.error}). It is tried again when the server restarts.`
+        : 'No transcript yet.'
+
+export function filesView(m, current, mac) {
   const videos = m.videos
   return html`<div class="files">
     <h3>Video</h3>
@@ -1045,7 +1071,7 @@ function filesView(m, current, mac) {
       </article>`
     })}
     <h3>Transcripts</h3>
-    ${m.transcripts.length ? '' : html`<p class="muted">No transcript yet.</p>`}
+    ${m.transcripts.length ? '' : html`<p class="muted no-transcript">${noTranscript(m.transcribing, mac)}</p>`}
     ${m.transcripts.map(
       (t) => html`<div class="frow"><b>${t.label}</b><span>${fmtNum(t.words)} words${t.synced ? ' · synced to video' : ''}</span>
         <span class="frow-links">${t.files.map((f) => html`<a href="${f.url}" download>.${f.name.split('.').pop()} <small>${fmtBytes(f.size)}</small></a>`)}<a href="/captions/${t.id}.vtt" download="${m.date} ${m.title.replace(/[/\\:*?"<>|]+/g, '-')}.vtt">.vtt captions</a></span></div>`,

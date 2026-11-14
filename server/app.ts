@@ -25,6 +25,7 @@ import { cleanName, SpeakerError, Speakers } from './speakers.ts'
 import { LIMITS, Store } from './state.ts'
 import { actionEvent, addAction, allActions, canonical, ConflictError, findAction, openOnUs, reconcile, removeAction, TaskError, updateAction, type ActionView, type BoardEvent } from './tasks.ts'
 import { fmtTime, shortHash } from './text.ts'
+import { Transcriber } from './transcriber.ts'
 
 export type AppOptions = {
   // follow the meetings folder (fs.watch, and a poll every minute)
@@ -134,6 +135,12 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     remoteEnabled: gate.configured,
   })
   const speakers = new Speakers(config.dataDir, config.diarize, (ids, relabel) => speakersChanged(ids, relabel), config.localUser)
+  // A transcript started, stopped or failed: the pages showing those meetings hear of it. Once its files are in the
+  // folder the folder is scanned again at once, without waiting for the watcher.
+  const transcriber = new Transcriber(config.dataDir, config.transcribe, (ids, placed) => {
+    broadcast('writing', { meetings: ids })
+    if (placed) schedule('transcript written', 0)
+  })
   const parseCache: ParseCache = new Map()
   const thumbs = new Map<string, { base: string; strip: Strip; poster: string; sprite: string }>()
   // what start() set going, so close() can stop it
@@ -237,6 +244,7 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
         const next = await buildLibrary(files, (f) => media.facts(f), config.crew, parseCache)
         await speakers.plan(next, syncOf(next))
         speakers.apply(next)
+        transcriber.plan(next)
         scanned = sig
         for (const id of thumbs.keys()) if (!next.files.has(id)) thumbs.delete(id)
         for (const m of next.meetings) {
@@ -384,6 +392,8 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
         }
       }),
       primaryTranscript: m.primaryTranscript ?? null,
+      // a transcript this Mac is writing for a meeting that has none: queued, running, or failed and why
+      transcribing: transcriber.view(m.id) ?? null,
       docs: m.docs.map((f) => ({ id: f.id, name: f.name, url: `/api/docs/${f.id}`, download: fileUrl(f.id, true) })),
       files: m.files.map((f) => ({ id: f.id, name: f.name, kind: f.kind, size: f.size, mtimeMs: f.mtimeMs, url: fileUrl(f.id, true) })),
       sync: syncFor(m) ?? null,
@@ -488,6 +498,7 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     screens,
     reranker,
     speakers,
+    transcriber,
     lookups,
     notebookChanged,
   }
@@ -990,6 +1001,7 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
           semantic: semantic.status(),
           reranker: reranker.enabled,
           mirror: mirror.status(),
+          transcripts: transcriber.status(),
           meetings: lib.meetings.map((x) => ({ id: x.id, title: x.title, date: x.date, hue: x.hue, videos: x.videos })),
           loose: lib.loose.map((f) => ({ id: f.id, name: f.name, kind: f.kind, size: f.size })),
         }),
@@ -1141,6 +1153,7 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     await semantic.load()
     await media.load()
     await speakers.load()
+    await transcriber.load()
     await refresh('startup').catch(async (err) => {
       failed(err)
       lib = await buildLibrary([], () => ({}), config.crew, parseCache)
@@ -1171,6 +1184,8 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
   async function close() {
     for (const stop of stops.splice(0)) stop()
     clearTimeout(timer)
+    // a transcript being written stops; the next start writes it again
+    transcriber.stop()
     // the file being copied is cut short and its part removed; the next start copies it again
     const mirrored = mirror.stop()
     for (const c of clients.values()) c.res.destroy()

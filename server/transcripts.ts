@@ -41,6 +41,11 @@ export function parseWhisperJson(raw: string): Transcript {
 
 const round = (n: number) => Math.round(n * 1000) / 1000
 
+// The recording a transcript was made from: a "Source video:" line naming a video, as it always was, else a
+// "Source recording:" (or "Source video:") line naming any recording, sound only included.
+const SOURCE_VIDEO = /^Source video:\s*(.+?\.(?:mp4|m4v|mov|webm|mkv))/im
+const SOURCE_ANY = /^Source (?:video|recording):\s*(.+?\.(?:mp4|m4v|mov|webm|mkv|m4a|mp3|wav|aac|ogg|opus|flac))/im
+
 const TS = String.raw`\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d{1,3})?`
 const BRACKET = new RegExp(String.raw`^\[(${TS})\s*[-–—]+\s*(${TS})\]\s?(.*)$`)
 const ARROW = new RegExp(String.raw`^(${TS})\s*-->\s*(${TS})`)
@@ -80,7 +85,7 @@ export function parseTranscriptText(raw: string): Transcript {
     segments: markSilence(arrow ? mergeFragments(segments.filter((s) => s.t)) : segments.filter((s) => s.t)),
     header,
     title: /^MACHINE TRANSCRIPT:\s*(.+)$/im.exec(meta)?.[1]?.trim(),
-    sourceVideo: /^Source video:\s*(.+?\.(?:mp4|m4v|mov|webm|mkv))/im.exec(meta)?.[1]?.trim(),
+    sourceVideo: (SOURCE_VIDEO.exec(meta) ?? SOURCE_ANY.exec(meta))?.[1]?.trim(),
     duration: durationFrom(meta),
   }
 }

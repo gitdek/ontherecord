@@ -92,9 +92,10 @@ export async function sendFile(req: IncomingMessage, res: ServerResponse, source
 // ---------- probing ----------
 
 // Output is capped: what we read back (probe JSON, a strip of frame colours) is small, so anything
-// bigger is a misbehaving file and the tool is stopped.
-export function run(cmd: string, args: string[], timeoutMs: number, maxOut = 4_000_000, env?: NodeJS.ProcessEnv, inputFd?: number): Promise<Buffer> {
+// bigger is a misbehaving file and the tool is stopped. signal: stops it early (the server is closing, say).
+export function run(cmd: string, args: string[], timeoutMs: number, maxOut = 4_000_000, env?: NodeJS.ProcessEnv, inputFd?: number, signal?: AbortSignal): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(new Error(`${cmd} was stopped before it started`))
     const stdio: ['ignore', 'pipe', 'pipe', ...number[]] = ['ignore', 'pipe', 'pipe']
     if (inputFd !== undefined) stdio.push(inputFd)
     const child = spawn(cmd, args, { stdio, ...(env ? { env } : {}) })
@@ -103,6 +104,9 @@ export function run(cmd: string, args: string[], timeoutMs: number, maxOut = 4_0
     let outSize = 0
     let errSize = 0
     const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs)
+    const stop = () => child.kill('SIGKILL')
+    signal?.addEventListener('abort', stop, { once: true })
+    child.on('close', () => signal?.removeEventListener('abort', stop))
     child.stdout!.on('data', (d: Buffer) => {
       outSize += d.length
       if (outSize > maxOut) child.kill('SIGKILL')
@@ -113,6 +117,7 @@ export function run(cmd: string, args: string[], timeoutMs: number, maxOut = 4_0
     })
     child.on('error', (e) => {
       clearTimeout(timer)
+      signal?.removeEventListener('abort', stop)
       reject(e)
     })
     child.on('close', (code) => {

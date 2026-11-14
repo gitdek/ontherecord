@@ -356,6 +356,8 @@ function startLive() {
         if (d.by && d.by !== app.me?.name) toast({ icon: '🎙️', title: d.name ? `${d.by} named a voice “${d.name}”` : `${d.by} took the name off a voice`, body: 'Other meetings with the same voice pick it up too.', timeout: 5000 })
         app.view?.onSpeakers?.(d)
       },
+      // a transcript the Mac is writing started, stopped or failed (the transcript itself arrives as a library change)
+      writing: (d) => app.view?.onWriting?.(d),
       notebook: (d) => {
         if (d.by && d.by !== app.me?.name) {
           const verb = { saved: 'saved a note', updated: 'updated a note', deleted: 'deleted a note', restored: 'restored a note' }[d.kind] ?? 'changed the notebook'
