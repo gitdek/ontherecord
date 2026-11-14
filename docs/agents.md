@@ -32,7 +32,7 @@ Writing, served by `/mcp` only:
 | `save_note` | Saves a Markdown note linked to meetings and action items |
 | `update_note` | Appends to a note, or replaces its body, title, tags or links. The last 20 versions are kept, links included, and `if_version` refuses an edit made on an older copy |
 | `delete_note` | Removes a note from view. It can be restored from the web app until 500 newer deletions push it out or the notebook needs its room, and it no longer counts toward the notebook's limits |
-| `save_notes` | Writes a meeting's notes file, or replaces it given the `notes_rev` read with `get_meeting`. The notes are checked before anything is kept, every version replaced is kept, and `undo: true` puts back the one before the last save. It never writes a transcript ([Writing a meeting's notes](#writing-a-meetings-notes)) |
+| `save_notes` | Writes a meeting's notes file, or replaces it given the `notes_rev` read with `get_meeting`. The notes are checked before anything is kept, every version a person wrote is kept with the newest 20 saves, and `undo: true` puts back the one before the last save. It never writes a transcript ([Writing a meeting's notes](#writing-a-meetings-notes)) |
 
 ## The workflow the server teaches
 
@@ -104,7 +104,7 @@ What the server holds the notes to:
 - **The title stays the meeting's own,** so its id and links do not move, and the server sets one header line itself, `Saved by Ada's agent on 2026-11-14.`, in place of its own earlier one.
 - **New notes go beside the recording** as `<recording> - notes.txt`, only where that name is free. A meeting that `meetings-index.json` lists gets none this way: the index says which files are its.
 - **Replacing needs the rev.** A meeting that has notes takes `if_rev`, the `notes_rev` from `get_meeting`, which comes only with the notes it is of: a notes file edited by hand a moment ago is read again before `get_meeting` answers. The file is replaced in one step, and only while it is still that version, so a newer edit by hand is never written over. A refused save gives no rev; the agent reads the meeting again.
-- **Every version is kept.** The one replaced goes into `data/notes-history/` on the Mac with who saved the new one, when and why (`reason`), hand edits made in between included. `undo: true` puts back the version before the last save, and after a first save takes the notes out again. The pages and `get_meeting` say who saved the notes while they are still that version.
+- **Every version a person wrote is kept.** The one replaced goes into `data/notes-history/` on the Mac with who saved the new one, when and why (`reason`), hand edits made in between included, and a version written by hand stays there however many saves come after it; of the saves themselves, the newest 20 are kept. That folder is the only copy: the backups and the copy of the meetings folder hold the notes as they are now. `undo: true` puts back the version before the last save, and after a first save takes the notes out again. The pages and `get_meeting` say who saved the notes while they are still that version.
 - **The board follows.** Action items in saved notes go on the board as soon as the tool answers, like those of any notes.
 
 ```json

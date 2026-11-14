@@ -3,7 +3,7 @@
 // and nothing but a notes file is ever written.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { appendFile, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { appendFile, chmod, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, type TestContext } from 'node:test'
@@ -196,6 +196,44 @@ test('undo puts back the version before the last save, and after the first save 
   const kept = JSON.parse(await readFile(join(data, 'notes-history', history), 'utf8'))
   assert.equal(kept.file, NOTES_FILE)
   assert.deepEqual(kept.undone.map((v: { by: string; undoneBy: string }) => [v.by, v.undoneBy]), [["Ada's agent", "Ada's agent"], ["Ada's agent", "Ada's agent"]])
+})
+
+test('notes a person wrote stay in the history however many saves come after them, and a failed undo can be tried again', { skip: process.getuid?.() === 0 && 'running as root' }, async (t) => {
+  const { dir, data, app } = await archive(t)
+  let rev = (await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: NOTES })).data.notes_rev
+  // Grace adds a line by hand; then the agent saves on top of it 25 times
+  await appendFile(join(dir, NOTES_FILE), '- Grace checks the price list.\n')
+  rev = (await meta(app, NORTHWIND)).notes_rev
+  for (let i = 1; i <= 25; i++) {
+    const saved = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: NOTES.replace('when the bags arrive.', `when the bags arrive (draft ${i}).`), if_rev: rev })
+    assert.equal(saved.isError, undefined, saved.text)
+    rev = saved.data.notes_rev
+  }
+  const history = async () => {
+    const [name] = await readdir(join(data, 'notes-history'))
+    return JSON.parse(await readFile(join(data, 'notes-history', name), 'utf8')) as { versions: { text: string | null; by?: string }[] }
+  }
+  const { versions } = await history()
+  // the folder had no notes before the first save, then Grace's; both stay, with the newest 20 saves
+  assert.deepEqual(versions.filter((v) => !v.by).map((v) => v.text && /Grace checks the price list\.\n$/.test(v.text)), [null, true])
+  assert.equal(versions.filter((v) => v.by).length, 20)
+  assert.match(versions.at(-1)!.text!, /\(draft 25\)/)
+  // an undo that can't put the notes back changes nothing, and can be tried again
+  const now = await readFile(join(dir, NOTES_FILE), 'utf8')
+  await chmod(dir, 0o555)
+  let failed
+  try {
+    t.mock.method(console, 'error', () => {})
+    failed = (await requestApp(app, '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'save_notes', arguments: { meeting_id: NORTHWIND, undo: true } } })).json()
+  } finally {
+    await chmod(dir, 0o755)
+  }
+  assert.ok(failed.error || failed.result?.isError, 'the undo did not happen')
+  assert.equal(await readFile(join(dir, NOTES_FILE), 'utf8'), now)
+  assert.deepEqual((await history()).versions, versions)
+  const undone = await call(app, 'save_notes', { meeting_id: NORTHWIND, undo: true })
+  assert.equal(undone.isError, undefined, undone.text)
+  assert.match(await readFile(join(dir, NOTES_FILE), 'utf8'), /\(draft 24\)/)
 })
 
 test('save_notes refuses notes it cannot keep, says what to change, and leaves the folder as it was', async (t) => {

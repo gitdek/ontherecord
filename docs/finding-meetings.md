@@ -2,7 +2,7 @@
 
 The server watches `MEETINGS_DIR` and rebuilds within a second or two when anything changes (and every minute regardless). Open browsers update live.
 
-The server reads that folder, and writes to it in two cases only. It adds a transcript beside a recording that has none, when `TRANSCRIBE_PYTHON` is set ([Transcripts](transcripts.md)). And notes an agent saves with `save_notes` land beside the recording of a meeting that has none, or replace its notes file when the agent saves over the version it read; every version replaced is kept in `data/notes-history/` ([Writing a meeting's notes](agents.md#writing-a-meetings-notes)). New files go in only under names that are free, and a file a person put in the folder is never removed. What people and agents add later (the board, the notebook, speaker names) and every cache live in `data/`, so the archive can be rebuilt from the folder at any time.
+The server reads that folder, and writes to it in two cases only. It adds a transcript beside a recording that has none, when `TRANSCRIBE_PYTHON` is set ([Transcripts](transcripts.md)). And notes an agent saves with `save_notes` land beside the recording of a meeting that has none, or replace its notes file when the agent saves over the version it read; every version a person wrote is kept in `data/notes-history/` ([Writing a meeting's notes](agents.md#writing-a-meetings-notes)). New files go in only under names that are free, and a file a person put in the folder is never removed. What people and agents add later (the board, the notebook, speaker names) and every cache live in `data/`, so the archive can be rebuilt from the folder at any time.
 
 ## Which files belong together
 

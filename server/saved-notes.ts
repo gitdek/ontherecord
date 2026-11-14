@@ -18,7 +18,7 @@ import { findRanges, fmtTime, localDay, normName, parseLongDate, shortHash, stri
 // A long meeting's notes run to 20,000 characters; five times that is not notes.
 export const NOTES_MAX = 100_000
 const REASON_MAX = 200
-// versions kept for each notes file, and versions taken back by undo
+// saves through the tool kept for each notes file, and versions taken back by undo
 const KEEP = 20
 // the line the server sets in the header on each save: "Saved by Ada's agent on 2026-11-14."
 const SAVED_LINE = /^Saved by .{1,120} on \d{4}-\d{2}-\d{2}\.$/
@@ -28,6 +28,11 @@ const SAVED_LINE = /^Saved by .{1,120} on \d{4}-\d{2}-\d{2}\.$/
 // whether the notes are still that version without reading them.
 type Version = { text: string | null; rev: string; by?: string; at?: string; reason?: string; size?: number; mtimeMs?: number }
 type History = { file: string; versions: Version[]; undone: (Version & { undoneBy: string; undoneAt: string })[] }
+
+// The versions a history keeps: the newest KEEP, and every version the tool did not write. Notes a person wrote are
+// in no other place once a save replaces them (the copy of the folder is brought up to date too), so however many
+// saves come after, they stay.
+const keep = (versions: Version[]) => versions.filter((v, i) => !v.by || i >= versions.length - KEEP)
 
 export type Saved = { by: string; at: string; reason?: string }
 export type SaveResult = { file: string; rev: string | null; created: boolean; removed?: boolean; topics: number; actionItems: number; titleKept?: string }
@@ -228,15 +233,21 @@ export class SavedNotes {
       if (!file || !h || !last?.by || !before) throw new TaskError('no save through save_notes is left to undo for this meeting')
       const current = await this.read(file)
       if (current.rev !== last.rev) throw new TaskError('the notes changed after the last save through save_notes (by hand, or another way), so undo leaves them as they are')
+      const undone = h.undone
       h.versions.pop()
-      h.undone = [...h.undone, { ...last, undoneBy: by, undoneAt: now.toISOString() }].slice(-KEEP)
-      if (before.text === null) {
-        await this.store(h)
-        await this.remove(file, current)
-        return { file: file.name, rev: null, created: false, removed: true, topics: 0, actionItems: 0 }
-      }
+      h.undone = [...undone, { ...last, undoneBy: by, undoneAt: now.toISOString() }].slice(-KEEP)
       await this.store(h)
-      await this.replace(file, before.text, current)
+      try {
+        if (before.text === null) await this.remove(file, current)
+        else await this.replace(file, before.text, current)
+      } catch (err) {
+        // not undone after all: the history says so too, so the undo can be tried again
+        h.versions.push(last)
+        h.undone = undone
+        await this.store(h)
+        throw err
+      }
+      if (before.text === null) return { file: file.name, rev: null, created: false, removed: true, topics: 0, actionItems: 0 }
       Object.assign(before, await this.left(file.path))
       await this.store(h)
       const notes = parseNotes(before.text)
@@ -251,7 +262,7 @@ export class SavedNotes {
   }
 
   private async store(h: History) {
-    h.versions = h.versions.slice(-KEEP)
+    h.versions = keep(h.versions)
     const path = join(this.dir, `${shortHash(h.file, 16)}.json`)
     await writeFile(`${path}.tmp`, JSON.stringify(h), { mode: 0o600 })
     await rename(`${path}.tmp`, path)

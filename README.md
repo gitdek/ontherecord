@@ -11,7 +11,7 @@
   <img alt="Search by keyword and by meaning" src="https://img.shields.io/badge/search-keyword%20%C2%B7%20meaning-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
   <img alt="Agents connect over MCP with 18 tools" src="https://img.shields.io/badge/agents-MCP%20%C2%B7%2018%20tools-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
   <img alt="Private behind Cloudflare Access" src="https://img.shields.io/badge/access-Cloudflare%20Access-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
-  <img alt="388 tests passing" src="https://img.shields.io/badge/tests-388%20passing-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
+  <img alt="389 tests passing" src="https://img.shields.io/badge/tests-389%20passing-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
 </p>
 
 <p align="center">
@@ -136,7 +136,7 @@ One Node process does all of it. The folder is watched, so a new file is on the 
 | :-- | :-- |
 | `server/library.ts` · `server/check.ts` | Turns the folder into meetings: reads the index file, groups the files, watches for changes. `npm run check` prints the grouping |
 | `server/notes.ts` · `server/transcripts.ts` | Parse the notes and the transcripts: whisper JSON, bracketed text, caption exports |
-| `server/saved-notes.ts` | Notes an agent saves: checked, placed beside the recording or put in place of the notes file once the rev matches, every version replaced kept in `data/notes-history/` |
+| `server/saved-notes.ts` | Notes an agent saves: checked, placed beside the recording or put in place of the notes file once the rev matches, every version a person wrote kept in `data/notes-history/` |
 | `server/media.ts` | Streams video by byte range, reads its facts with ffprobe, makes posters, hover sprites and colour strips in the background |
 | `server/search.ts` · `server/retrieval.ts` · `server/retrieval-source.ts` · `server/semantic.ts` · `server/text.ts` | Keyword and meaning indexes with shared query filters, where each hit comes from, and the passages transcripts are cut into |
 | `server/screens.ts` · `scripts/index-screens.ts` | Optional screen search: frames picked by ffmpeg, text read with macOS Vision, pictures matched by a local model or by Gemini through OpenRouter, each mode with its own index |
@@ -232,7 +232,7 @@ The rest is in `docs/`:
 
 **2026-11-13.** In daily use by two people and their agents since November 2026. A security review and two audits that month are behind most of what [`docs/security.md`](docs/security.md) and [`docs/recovery.md`](docs/recovery.md) describe.
 
-Still rough: **Ask** waits for a local chat model to be installed. Transcripts written on the Mac, and notes an agent saves with `save_notes`, have been tried on made-up recordings only. Screen search runs on the Mac and has been tried on one real recording. Both thresholds were set on made-up frames, and a search worded differently from its slide finds it about a third of the time. The board, the notebook, the speaker names and the meetings folder can have a second copy in another folder, but `.env`, the model keys and the agents' sign-ins are in no copy. The stylesheet and the meeting page are large single files.
+Still rough: **Ask** waits for a local chat model to be installed. Transcripts written on the Mac, and notes an agent saves with `save_notes`, have been tried on made-up recordings only. Screen search runs on the Mac and has been tried on one real recording. Both thresholds were set on made-up frames, and a search worded differently from its slide finds it about a third of the time. The board, the notebook, the speaker names and the meetings folder can have a second copy in another folder, but `.env`, the model keys, the agents' sign-ins and the versions of notes an agent saved over (`data/notes-history/`) are in no copy. The stylesheet and the meeting page are large single files.
 
 <br>
 
