@@ -60,7 +60,8 @@ const othersNames = (lib: Library, m: Meeting) =>
 
 // The notes as they will be kept, or a refusal that says what to change. The title line stays the meeting's own,
 // and the header gets the server's line saying who saved them and when, in place of any earlier one. kept: the
-// lines of the notes being replaced, whose times are the writer's own and are not held against the agent.
+// lines of the notes being replaced, whose times and file names are the writer's own and are not held against the
+// agent.
 export function checkNotes(raw: string, m: Meeting, by: string, day: string, others: string[] = [], kept: string[] = []): { text: string; notes: Notes; titleKept?: string } {
   const lines = raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').normalize('NFC').split('\n').map((l) => l.replace(/\s+$/, ''))
   while (lines.length && !lines[0].trim()) lines.shift()
@@ -109,8 +110,11 @@ export function checkNotes(raw: string, m: Meeting, by: string, day: string, oth
   for (const a of actionsOf(notes)) {
     if (!a.owner) throw new TaskError(`each action item starts with its owner, as "- Ada: Send the price list. (1:10–1:25)", or "- Team: …" when nobody was named; this one has none: "${a.text.slice(0, 80)}"`)
   }
+  // Another meeting's file named near the top would take that file over, unless the notes being replaced name it
+  // there already: then the archive groups the files as it does now.
   const head = normName(text.slice(0, 4000))
-  const named = others.find((n) => head.includes(normName(n)))
+  const theirs4k = normName(kept.join('\n').slice(0, 4000))
+  const named = others.find((n) => head.includes(normName(n)) && !theirs4k.includes(normName(n)))
   if (named) throw new TaskError(`the notes name "${named}", a file of another meeting; the archive groups files by such names, so leave it out`)
   return { text, notes, ...(asked && asked !== m.title ? { titleKept: m.title } : {}) }
 }

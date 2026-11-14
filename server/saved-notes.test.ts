@@ -204,6 +204,24 @@ ACTION ITEMS
   }
 })
 
+test("another meeting's file her notes name already is hers to name; one the agent adds is refused", async (t) => {
+  // Grace's notes point at the Acme demo's recording, which the index keeps with the Acme demo
+  const hers = NOTES.replace('Participants: Ada Byron, Grace Hopper', 'Participants: Ada Byron, Grace Hopper\nThe roast list is the one shown in Acme demo 2026-11-07.mp4.')
+  const { dir, app } = await archive(t, { [NOTES_FILE]: hers })
+  const rev = (await meta(app, NORTHWIND)).notes_rev
+  assert.ok(rev, 'her notes are read')
+  const saved = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: hers.replace('Nobody said when the bags arrive.', 'Nobody said when the bags arrive, or what they cost.'), if_rev: rev })
+  assert.equal(saved.isError, undefined, saved.text)
+  assert.ok((await readFile(join(dir, NOTES_FILE), 'utf8')).includes('The roast list is the one shown in Acme demo 2026-11-07.mp4.\n'))
+  const kept = await readFile(join(dir, NOTES_FILE), 'utf8')
+  const added = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: kept.replace('Participants:', 'See also Screen Recording 2026-10-02 at 9.15.00 AM.mp4.\nParticipants:'), if_rev: saved.data.notes_rev })
+  assert.equal(added.isError, true)
+  assert.match(added.text, /^the notes name "Screen Recording 2026-10-02 at 9\.15\.00\sAM\.mp4", a file of another meeting/)
+  // and the meeting keeps the files it had: the Acme recording stays with the Acme demo
+  const acme = (await requestApp(app, '/api/meetings/2026-11-07-acme-demo')).json()
+  assert.deepEqual(acme.videos.map((v: { name: string }) => v.name), ['Acme demo 2026-11-07.mp4'])
+})
+
 test('a file the index gives as notes that the archive does not read as notes, captions say, is never written over', async (t) => {
   // the index names the meeting's captions where its notes go, by mistake
   const captions = 'Acme demo 2026-11-07 - captions.srt'
