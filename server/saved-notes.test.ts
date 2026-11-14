@@ -127,13 +127,13 @@ test('replacing notes takes the rev the agent read; without it, or with an older
   const untouched = await fingerprints(dir)
   const missing = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: second })
   assert.equal(missing.isError, true)
-  assert.equal(missing.text, `this meeting has notes already: read them with get_meeting and pass its notes_rev as if_rev (now ${first.notes_rev})`)
+  assert.equal(missing.text, 'this meeting has notes already: read them with get_meeting and pass its notes_rev as if_rev')
   // Grace fixes a word by hand after the agent read the notes
   await appendFile(join(dir, NOTES_FILE), '- Grace checks the price list.\n')
   const edited = await fingerprints(dir)
   const stale = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: second, if_rev: first.notes_rev })
   assert.equal(stale.isError, true)
-  assert.match(stale.text, /^the notes changed since you read them \(now rev \S+\); read them again with get_meeting before saving$/)
+  assert.equal(stale.text, 'the notes changed since you read them; read them again with get_meeting before saving')
   assert.deepEqual(await fingerprints(dir), edited, 'her edit stands')
   assert.notDeepEqual(edited, untouched)
   // read again, and saved on top of her edit: her version is kept in the history, then replaced
@@ -144,6 +144,27 @@ test('replacing notes takes the rev the agent read; without it, or with an older
   assert.notEqual(replaced.data.notes_rev, rev)
   assert.match(await readFile(join(dir, NOTES_FILE), 'utf8'), /or what they cost\./)
   assert.equal((await meta(app, NORTHWIND)).notes_saved.reason, 'cost is unclear too')
+})
+
+test('the rev get_meeting gives is of the notes it shows, even a moment after an edit by hand, and a refusal gives none', async (t) => {
+  const { dir, app } = await archive(t)
+  const first = (await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: NOTES })).data
+  // Grace adds a line by hand, in place, before the folder is read again (this archive has no watcher)
+  await appendFile(join(dir, NOTES_FILE), '- Grace checks the price list.\n')
+  const read = await call(app, 'get_meeting', { meeting_id: NORTHWIND })
+  const rev = JSON.parse(read.content[1].text).notes_rev
+  assert.match(read.content[0].text, /Grace checks the price list\./, 'the notes shown are the ones in the folder')
+  assert.notEqual(rev, first.notes_rev)
+  // an agent that has not read her line is never handed the rev that would write over it
+  const second = NOTES.replace('Nobody said when the bags arrive.', 'Nobody said when the bags arrive, or what they cost.')
+  for (const args of [{}, { if_rev: first.notes_rev }]) {
+    const refused = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: second, ...args })
+    assert.equal(refused.isError, true)
+    assert.ok(!refused.text.includes(rev), refused.text)
+  }
+  assert.match(await readFile(join(dir, NOTES_FILE), 'utf8'), /Grace checks the price list\.\n$/)
+  const saved = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: second, if_rev: rev })
+  assert.equal(saved.isError, undefined, saved.text)
 })
 
 test('undo puts back the version before the last save, and after the first save takes the notes out again', async (t) => {

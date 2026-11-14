@@ -11,7 +11,7 @@
   <img alt="Search by keyword and by meaning" src="https://img.shields.io/badge/search-keyword%20%C2%B7%20meaning-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
   <img alt="Agents connect over MCP with 18 tools" src="https://img.shields.io/badge/agents-MCP%20%C2%B7%2018%20tools-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
   <img alt="Private behind Cloudflare Access" src="https://img.shields.io/badge/access-Cloudflare%20Access-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
-  <img alt="387 tests passing" src="https://img.shields.io/badge/tests-387%20passing-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
+  <img alt="388 tests passing" src="https://img.shields.io/badge/tests-388%20passing-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
 </p>
 
 <p align="center">

@@ -505,8 +505,9 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     speakers,
     transcriber,
     savedNotes,
-    // the folder read again at once after notes are saved, so the board has their action items when the tool answers
-    notesChanged: () => refresh('notes saved'),
+    // the folder read again at once after notes are saved, so the board has their action items when the tool answers,
+    // or when get_meeting finds a notes file changed since the last scan
+    notesChanged: (reason = 'notes saved') => refresh(reason),
     lookups,
     notebookChanged,
   }

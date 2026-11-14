@@ -31,9 +31,10 @@ export type Ctx = {
   speakers: Speakers
   // a transcript being written on this Mac for a meeting that has none
   transcriber?: Pick<Transcriber, 'view'>
-  // meetings' notes saved by agents (save_notes), and the folder read again once they are in it
+  // meetings' notes saved by agents (save_notes), and the folder read again once they are in it, or once a notes
+  // file has changed since the last scan
   savedNotes?: SavedNotes
-  notesChanged?: () => Promise<void>
+  notesChanged?: (reason?: string) => Promise<void>
   lookups: { meeting: (id: string) => string | undefined; task: (id: string) => string | undefined }
   notebookChanged: (kind: string, note: { id: string; title: string }, by: string) => void
 }
@@ -727,7 +728,16 @@ async function callTool(name: string, args: Record<string, unknown>, viewer: Vie
       }
     }
     case 'get_meeting': {
-      const m = meetingOf(ctx, args.meeting_id)
+      let m = meetingOf(ctx, args.meeting_id)
+      // The rev save_notes takes as if_rev, given only with the notes it is of. A notes file changed since the folder
+      // was last read (edited by hand a moment ago) has the folder read again first, so what this shows is the file.
+      let rev = m.notesFile && args.outline !== true ? await ctx.savedNotes?.shownRev(m.notesFile) : undefined
+      if (m.notesFile && args.outline !== true && ctx.savedNotes && !rev && ctx.notesChanged) {
+        await ctx.notesChanged('notes changed by hand').catch(() => {})
+        lib = ctx.lib()
+        m = lib.byId.get(m.id) ?? m
+        rev = m.notesFile ? await ctx.savedNotes.shownRev(m.notesFile) : undefined
+      }
       const shown = ctx.screens?.enabled ? await ctx.screens.shownIn(m) : undefined
       const screens = ctx.screens?.enabled
         ? { screens: shown ? `${shown.screens.length} screens indexed: get_screens reads them in order between two times, and search with in:screen finds a moment` : 'not indexed for this recording' }
@@ -751,8 +761,7 @@ async function callTool(name: string, args: Record<string, unknown>, viewer: Vie
         }
       }
       const files = m.files.map((f) => ({ name: f.name, kind: f.kind, bytes: f.size, download: `${ctx.publicUrl}/media/${f.id}?download=1` }))
-      // the rev save_notes takes as if_rev, from the file as it is now, and who saved the notes when an agent did
-      const rev = m.notesFile ? (await ctx.savedNotes?.read(m.notesFile).catch(() => undefined))?.rev : undefined
+      // who saved the notes, when an agent did
       const saved = ctx.savedNotes?.saved(m)
       return {
         text: notesAsText(m),

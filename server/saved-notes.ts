@@ -138,7 +138,7 @@ export class SavedNotes {
 
   // The notes file as it is at this moment, and its rev. A file swapped since the scan (saved by an editor, say)
   // is not read through: the agent is asked to read the meeting again.
-  async read(file: FileEntry): Promise<{ text: string; rev: string; mode: number }> {
+  async read(file: FileEntry): Promise<{ text: string; rev: string; mode: number; size: number; mtimeMs: number }> {
     let fh
     try {
       fh = await openScanned(file)
@@ -148,10 +148,18 @@ export class SavedNotes {
     }
     try {
       const text = (await fh.readFile()).toString('utf8')
-      return { text, rev: notesRev(text), mode: (await fh.stat()).mode & 0o777 }
+      const s = await fh.stat()
+      return { text, rev: notesRev(text), mode: s.mode & 0o777, size: s.size, mtimeMs: Math.round(s.mtimeMs) }
     } finally {
       await fh.close()
     }
+  }
+
+  // The rev of the notes the last scan read, which are the ones get_meeting shows: none while the file has changed
+  // since (edited by hand a moment ago, say), so the rev an agent is given is always of the notes it was shown.
+  async shownRev(file: FileEntry): Promise<string | undefined> {
+    const now = await this.read(file).catch(() => undefined)
+    return now && now.size === file.size && now.mtimeMs === file.mtimeMs ? now.rev : undefined
   }
 
   // Saves are made one at a time.
@@ -165,9 +173,11 @@ export class SavedNotes {
     return this.one(async () => {
       const reason = cleanReason(input.reason)
       const current = m.notesFile ? await this.read(m.notesFile) : undefined
+      // A refusal gives no rev: a rev comes only with the notes it is of, from get_meeting, so notes nobody has read
+      // are never saved over.
       if (current) {
-        if (input.ifRev === undefined || input.ifRev === null || input.ifRev === '') throw new TaskError(`this meeting has notes already: read them with get_meeting and pass its notes_rev as if_rev (now ${current.rev})`)
-        if (input.ifRev !== current.rev) throw new TaskError(`the notes changed since you read them (now rev ${current.rev}); read them again with get_meeting before saving`)
+        if (input.ifRev === undefined || input.ifRev === null || input.ifRev === '') throw new TaskError('this meeting has notes already: read them with get_meeting and pass its notes_rev as if_rev')
+        if (input.ifRev !== current.rev) throw new TaskError('the notes changed since you read them; read them again with get_meeting before saving')
       }
       const { text, notes, titleKept } = checkNotes(input.notes, m, by, localDay(now.getTime()), othersNames(lib, m))
       const saved: Version = { text, rev: notesRev(text), by, at: now.toISOString(), ...(reason ? { reason } : {}) }
