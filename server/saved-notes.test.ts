@@ -44,16 +44,18 @@ UNCERTAINTIES
 `
 
 // The made-up archive: the launch meeting with its notes, a wall-clock demo, the Northwind roast review with a
-// recording and a transcript but no notes, and an Acme demo the index lists, also without notes.
-async function archive(t: TestContext) {
+// recording and a transcript but no notes, and an Acme demo the index lists, also without notes. extra: files a
+// person put in the folder before the server started; user: whose agent the calls are (each has its own write limit).
+async function archive(t: TestContext, extra: Record<string, string> = {}, user = 'Ada') {
   const dir = await realpath(await fixtureDir())
   const data = await mkdtemp(join(tmpdir(), 'meetings-saved-notes-'))
+  for (const [name, text] of Object.entries(extra)) await writeFile(join(dir, name), text)
   await writeFile(join(dir, 'Northwind roast review 2026-11-03.mp4'), Buffer.alloc(3000, 3))
   await writeFile(join(dir, 'Northwind roast review 2026-11-03 - transcript.txt'), TRANSCRIPT)
   await writeFile(join(dir, 'Acme demo 2026-11-07.mp4'), Buffer.alloc(2000, 4))
   await writeFile(join(dir, 'Acme demo 2026-11-07 - transcript.txt'), TRANSCRIPT.replaceAll('Northwind roast review 2026-11-03', 'Acme demo 2026-11-07').replace('Northwind roast review', 'Acme demo'))
   await writeFile(join(dir, 'meetings-index.json'), JSON.stringify({ sessions: [{ id: '2026-11-07-acme-demo', date: '2026-11-07', title: 'Acme demo', videos: ['Acme demo 2026-11-07.mp4'], transcript: 'Acme demo 2026-11-07 - transcript.txt' }] }))
-  const config = configFrom({ PORT: '8798', MEETINGS_DIR: dir, DATA_DIR: data, CREW: 'Ada Byron,Grace Hopper', LOCAL_USER: 'Ada', DIARIZE_PYTHON: '', EMBED_URL: '', RERANK_URL: '' })
+  const config = configFrom({ PORT: '8798', MEETINGS_DIR: dir, DATA_DIR: data, CREW: 'Ada Byron,Grace Hopper', LOCAL_USER: user, DIARIZE_PYTHON: '', EMBED_URL: '', RERANK_URL: '' })
   const app = await createApp(config, { watch: false, backups: false })
   t.mock.method(console, 'log', () => {})
   t.mock.method(console, 'warn', () => {})
@@ -167,6 +169,41 @@ test('the rev get_meeting gives is of the notes it shows, even a moment after an
   assert.equal(saved.isError, undefined, saved.text)
 })
 
+test("the times on a line a person wrote are theirs when an agent saves over their notes; a time the agent adds is checked", async (t) => {
+  // Grace's own notes say the call ran on after the recording stopped, a time the recording does not have
+  const hers = `MEETING NOTES: Northwind roast review
+November 3, 2026 | Recording: 3:00 | Substantive discussion approximately 0:01–2:50
+Participants: Ada Byron, Grace Hopper
+The call went on to 3:25 after the recording stopped.
+
+SUMMARY
+The light roast sold out, and Grace will order more from the importer.
+
+ROASTS AND ORDERS
+1. Light roast sold out (0:01–0:05)
+- The Ethiopia light roast sold out on Friday.
+
+ACTION ITEMS
+- Grace: Order twenty more bags from the importer. (0:06–0:11)
+`
+  const { dir, app } = await archive(t, { [NOTES_FILE]: hers })
+  const rev = (await meta(app, NORTHWIND)).notes_rev
+  assert.ok(rev, 'her notes are read')
+  // an agent adds a sentence to her summary and leaves her lines as they were
+  const edited = hers.replace('from the importer.\n\nROASTS', 'from the importer. Nobody said when the bags arrive.\n\nROASTS')
+  const saved = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: edited, if_rev: rev })
+  assert.equal(saved.isError, undefined, saved.text)
+  const kept = await readFile(join(dir, NOTES_FILE), 'utf8')
+  assert.ok(kept.includes('The call went on to 3:25 after the recording stopped.\n'))
+  assert.ok(kept.includes('Nobody said when the bags arrive.'))
+  // a line the agent writes is held to the recording, even one that repeats her time
+  for (const line of ['- Team: Call the importer back. (4:10–4:20)', '- Team: Ask why the call went on to 3:25.']) {
+    const added = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: `${kept}${line}\n`, if_rev: saved.data.notes_rev })
+    assert.equal(added.isError, true, line)
+    assert.match(added.text, /^(4:10–4:20|3:25) is outside the recording, which runs 0:00–3:00/)
+  }
+})
+
 test('undo puts back the version before the last save, and after the first save takes the notes out again', async (t) => {
   const { dir, data, app } = await archive(t)
   const first = (await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: NOTES })).data
@@ -199,12 +236,12 @@ test('undo puts back the version before the last save, and after the first save 
 })
 
 test('notes a person wrote stay in the history however many saves come after them, and a failed undo can be tried again', { skip: process.getuid?.() === 0 && 'running as root' }, async (t) => {
-  const { dir, data, app } = await archive(t)
+  const { dir, data, app } = await archive(t, {}, 'Grace')
   let rev = (await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: NOTES })).data.notes_rev
-  // Grace adds a line by hand; then the agent saves on top of it 25 times
+  // Grace adds a line by hand; then her agent saves on top of it 20 times, 21 saves in all
   await appendFile(join(dir, NOTES_FILE), '- Grace checks the price list.\n')
   rev = (await meta(app, NORTHWIND)).notes_rev
-  for (let i = 1; i <= 25; i++) {
+  for (let i = 1; i <= 20; i++) {
     const saved = await call(app, 'save_notes', { meeting_id: NORTHWIND, notes: NOTES.replace('when the bags arrive.', `when the bags arrive (draft ${i}).`), if_rev: rev })
     assert.equal(saved.isError, undefined, saved.text)
     rev = saved.data.notes_rev
@@ -217,7 +254,7 @@ test('notes a person wrote stay in the history however many saves come after the
   // the folder had no notes before the first save, then Grace's; both stay, with the newest 20 saves
   assert.deepEqual(versions.filter((v) => !v.by).map((v) => v.text && /Grace checks the price list\.\n$/.test(v.text)), [null, true])
   assert.equal(versions.filter((v) => v.by).length, 20)
-  assert.match(versions.at(-1)!.text!, /\(draft 25\)/)
+  assert.match(versions.at(-1)!.text!, /\(draft 20\)/)
   // an undo that can't put the notes back changes nothing, and can be tried again
   const now = await readFile(join(dir, NOTES_FILE), 'utf8')
   await chmod(dir, 0o555)
@@ -233,7 +270,7 @@ test('notes a person wrote stay in the history however many saves come after the
   assert.deepEqual((await history()).versions, versions)
   const undone = await call(app, 'save_notes', { meeting_id: NORTHWIND, undo: true })
   assert.equal(undone.isError, undefined, undone.text)
-  assert.match(await readFile(join(dir, NOTES_FILE), 'utf8'), /\(draft 24\)/)
+  assert.match(await readFile(join(dir, NOTES_FILE), 'utf8'), /\(draft 19\)/)
 })
 
 test('save_notes refuses notes it cannot keep, says what to change, and leaves the folder as it was', async (t) => {

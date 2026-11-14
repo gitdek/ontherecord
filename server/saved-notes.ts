@@ -59,8 +59,9 @@ const othersNames = (lib: Library, m: Meeting) =>
   lib.meetings.filter((x) => x !== m).flatMap((x) => x.files.filter((f) => f.kind === 'video' || f.kind === 'audio' || f.kind === 'transcript').map((f) => f.name))
 
 // The notes as they will be kept, or a refusal that says what to change. The title line stays the meeting's own,
-// and the header gets the server's line saying who saved them and when, in place of any earlier one.
-export function checkNotes(raw: string, m: Meeting, by: string, day: string, others: string[] = []): { text: string; notes: Notes; titleKept?: string } {
+// and the header gets the server's line saying who saved them and when, in place of any earlier one. kept: the
+// lines of the notes being replaced, whose times are the writer's own and are not held against the agent.
+export function checkNotes(raw: string, m: Meeting, by: string, day: string, others: string[] = [], kept: string[] = []): { text: string; notes: Notes; titleKept?: string } {
   const lines = raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').normalize('NFC').split('\n').map((l) => l.replace(/\s+$/, ''))
   while (lines.length && !lines[0].trim()) lines.shift()
   while (lines.length && !lines.at(-1)!.trim()) lines.pop()
@@ -90,11 +91,15 @@ export function checkNotes(raw: string, m: Meeting, by: string, day: string, oth
   const summary = notes.sections.find((s) => s.role === 'summary')
   if (!summary?.blocks.some((b) => ('text' in b ? b.text : b.title).trim())) throw new TaskError('the notes need a SUMMARY section with a few sentences in it')
   if (!topicsOf(notes).some((t) => t.ranges.length)) throw new TaskError('the notes need at least one topic with its time, as "1. Holiday blend (0:15–0:52)" under a section in capitals')
-  // every time is a moment of this recording
+  // Every time is a moment of this recording, except on a line the notes being replaced already have: a person's
+  // notes can give the length of a longer original or a time on another clock, and an agent that leaves the line
+  // as it was is not sent to change what they wrote.
   const clock = m.timeBase === 'clock'
   const [from, to] = m.axis
   if (!(to > from)) throw new TaskError("the recording's length isn't known yet (it is still being read); try again in a minute")
+  const theirs = new Set(kept.map((l) => l.normalize('NFC').trim()).filter(Boolean))
   for (const line of text.split('\n').slice(1)) {
+    if (theirs.has(line.trim())) continue
     for (const [s, e] of findRanges(line, clock)) {
       if (s >= from - 1 && e <= to + 5) continue
       const when = s === e ? fmtTime(s, clock) : `${fmtTime(s, clock)}–${fmtTime(e, clock)}`
@@ -184,7 +189,7 @@ export class SavedNotes {
         if (input.ifRev === undefined || input.ifRev === null || input.ifRev === '') throw new TaskError('this meeting has notes already: read them with get_meeting and pass its notes_rev as if_rev')
         if (input.ifRev !== current.rev) throw new TaskError('the notes changed since you read them; read them again with get_meeting before saving')
       }
-      const { text, notes, titleKept } = checkNotes(input.notes, m, by, localDay(now.getTime()), othersNames(lib, m))
+      const { text, notes, titleKept } = checkNotes(input.notes, m, by, localDay(now.getTime()), othersNames(lib, m), current?.text.split('\n'))
       const saved: Version = { text, rev: notesRev(text), by, at: now.toISOString(), ...(reason ? { reason } : {}) }
       const counts = { topics: topicsOf(notes).length, actionItems: actionsOf(notes).length, ...(titleKept ? { titleKept } : {}) }
       if (current) {
