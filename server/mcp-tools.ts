@@ -732,7 +732,7 @@ async function callTool(name: string, args: Record<string, unknown>, viewer: Vie
       // The rev save_notes takes as if_rev, given only with the notes it is of. A notes file changed since the folder
       // was last read (edited by hand a moment ago) has the folder read again first, so what this shows is the file.
       let rev = m.notesFile && args.outline !== true ? await ctx.savedNotes?.shownRev(m.notesFile) : undefined
-      if (m.notesFile && args.outline !== true && ctx.savedNotes && !rev && ctx.notesChanged) {
+      if (m.notesFile?.kind === 'notes' && args.outline !== true && ctx.savedNotes && !rev && ctx.notesChanged) {
         await ctx.notesChanged('notes changed by hand').catch(() => {})
         lib = ctx.lib()
         m = lib.byId.get(m.id) ?? m

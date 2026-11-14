@@ -45,16 +45,16 @@ UNCERTAINTIES
 
 // The made-up archive: the launch meeting with its notes, a wall-clock demo, the Northwind roast review with a
 // recording and a transcript but no notes, and an Acme demo the index lists, also without notes. extra: files a
-// person put in the folder before the server started; user: whose agent the calls are (each has its own write limit).
+// person put in the folder (or wrote over) before the server started; user: whose agent the calls are (each has its own write limit).
 async function archive(t: TestContext, extra: Record<string, string> = {}, user = 'Ada') {
   const dir = await realpath(await fixtureDir())
   const data = await mkdtemp(join(tmpdir(), 'meetings-saved-notes-'))
-  for (const [name, text] of Object.entries(extra)) await writeFile(join(dir, name), text)
   await writeFile(join(dir, 'Northwind roast review 2026-11-03.mp4'), Buffer.alloc(3000, 3))
   await writeFile(join(dir, 'Northwind roast review 2026-11-03 - transcript.txt'), TRANSCRIPT)
   await writeFile(join(dir, 'Acme demo 2026-11-07.mp4'), Buffer.alloc(2000, 4))
   await writeFile(join(dir, 'Acme demo 2026-11-07 - transcript.txt'), TRANSCRIPT.replaceAll('Northwind roast review 2026-11-03', 'Acme demo 2026-11-07').replace('Northwind roast review', 'Acme demo'))
   await writeFile(join(dir, 'meetings-index.json'), JSON.stringify({ sessions: [{ id: '2026-11-07-acme-demo', date: '2026-11-07', title: 'Acme demo', videos: ['Acme demo 2026-11-07.mp4'], transcript: 'Acme demo 2026-11-07 - transcript.txt' }] }))
+  for (const [name, text] of Object.entries(extra)) await writeFile(join(dir, name), text)
   const config = configFrom({ PORT: '8798', MEETINGS_DIR: dir, DATA_DIR: data, CREW: 'Ada Byron,Grace Hopper', LOCAL_USER: user, DIARIZE_PYTHON: '', EMBED_URL: '', RERANK_URL: '' })
   const app = await createApp(config, { watch: false, backups: false })
   t.mock.method(console, 'log', () => {})
@@ -202,6 +202,24 @@ ACTION ITEMS
     assert.equal(added.isError, true, line)
     assert.match(added.text, /^(4:10–4:20|3:25) is outside the recording, which runs 0:00–3:00/)
   }
+})
+
+test('a file the index gives as notes that the archive does not read as notes, captions say, is never written over', async (t) => {
+  // the index names the meeting's captions where its notes go, by mistake
+  const captions = 'Acme demo 2026-11-07 - captions.srt'
+  const index = { sessions: [{ id: '2026-11-07-acme-demo', date: '2026-11-07', title: 'Acme demo', videos: ['Acme demo 2026-11-07.mp4'], transcript: 'Acme demo 2026-11-07 - transcript.txt', notes: captions }] }
+  const { dir, app } = await archive(t, { 'meetings-index.json': JSON.stringify(index), [captions]: '1\n00:00:01,000 --> 00:00:05,000\nThe Ethiopia light roast sold out on Friday.\n' })
+  const before = await fingerprints(dir)
+  const read = await meta(app, '2026-11-07-acme-demo')
+  assert.equal(read.notes_rev, undefined, 'no rev for a file that is not notes')
+  // even with the rev of the file as it is, nothing is written
+  const rev = createHash('sha1').update(await readFile(join(dir, captions), 'utf8')).digest('base64url').slice(0, 12)
+  for (const args of [{ if_rev: rev }, { undo: true }]) {
+    const r = await call(app, 'save_notes', { meeting_id: '2026-11-07-acme-demo', notes: NOTES.replace('November 3', 'November 7'), ...args })
+    assert.equal(r.isError, true, JSON.stringify(args))
+    if (args.if_rev) assert.equal(r.text, `meetings-index.json gives "${captions}" as this meeting's notes, and the archive does not read it as notes, so it is never written over; the index is put right by hand`)
+  }
+  assert.deepEqual(await fingerprints(dir), before)
 })
 
 test('undo puts back the version before the last save, and after the first save takes the notes out again', async (t) => {

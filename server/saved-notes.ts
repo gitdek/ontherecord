@@ -115,6 +115,12 @@ export function checkNotes(raw: string, m: Meeting, by: string, day: string, oth
   return { text, notes, ...(asked && asked !== m.title ? { titleKept: m.title } : {}) }
 }
 
+// Only a file the archive reads as notes is ever replaced. meetings-index.json can name any file as a meeting's
+// notes, and one it names by mistake (the captions, a transcript, the recording) is never the tool's to write.
+const readAsNotes = (file: FileEntry) => file.kind === 'notes'
+const notTheirs = (file: FileEntry) =>
+  new TaskError(`meetings-index.json gives "${file.name}" as this meeting's notes, and the archive does not read it as notes, so it is never written over; the index is put right by hand`)
+
 export class SavedNotes {
   private dir: string
   private histories = new Map<string, History>() // notes file's path in the folder → its versions
@@ -168,6 +174,7 @@ export class SavedNotes {
   // The rev of the notes the last scan read, which are the ones get_meeting shows: none while the file has changed
   // since (edited by hand a moment ago, say), so the rev an agent is given is always of the notes it was shown.
   async shownRev(file: FileEntry): Promise<string | undefined> {
+    if (!readAsNotes(file)) return
     const now = await this.read(file).catch(() => undefined)
     return now && now.size === file.size && now.mtimeMs === file.mtimeMs ? now.rev : undefined
   }
@@ -182,6 +189,7 @@ export class SavedNotes {
   save(lib: Library, m: Meeting, input: { notes: string; ifRev?: unknown; reason?: unknown }, by: string, now = new Date()): Promise<SaveResult> {
     return this.one(async () => {
       const reason = cleanReason(input.reason)
+      if (m.notesFile && !readAsNotes(m.notesFile)) throw notTheirs(m.notesFile)
       const current = m.notesFile ? await this.read(m.notesFile) : undefined
       // A refusal gives no rev: a rev comes only with the notes it is of, from get_meeting, so notes nobody has read
       // are never saved over.
@@ -236,6 +244,7 @@ export class SavedNotes {
       const last = h?.versions.at(-1)
       const before = h?.versions.at(-2)
       if (!file || !h || !last?.by || !before) throw new TaskError('no save through save_notes is left to undo for this meeting')
+      if (!readAsNotes(file)) throw notTheirs(file)
       const current = await this.read(file)
       if (current.rev !== last.rev) throw new TaskError('the notes changed after the last save through save_notes (by hand, or another way), so undo leaves them as they are')
       const undone = h.undone
