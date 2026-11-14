@@ -1,7 +1,7 @@
 // Placing files beside a recording, the only writing the server does in the meetings folder: it adds, it never
 // writes over anything, and the files of one transcript go in together or not at all.
 import assert from 'node:assert/strict'
-import fs, { mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import fs, { mkdtemp, readdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -125,9 +125,10 @@ test('a recording that changed since the scan, or a name that is not a plain fil
       await assert.rejects(placeBeside(f.recording, [{ name, text: 'x' }]), /is not a name a file can be placed under/)
     }
     await assert.rejects(placeBeside(f.recording, [files('a')[0], files('b')[0]]), /same name/)
-    // the recording swapped for another file under its name
-    await rm(join(f.dir, RECORDING))
-    await writeFile(join(f.dir, RECORDING), Buffer.alloc(10, 2))
+    // the recording swapped for another file under its name. The new one is written first and renamed over it, so
+    // the two exist at once and can't share an inode number: Linux gives a deleted file's number to the next new one.
+    await writeFile(join(f.dir, 'replacement.part'), Buffer.alloc(10, 2))
+    await rename(join(f.dir, 'replacement.part'), join(f.dir, RECORDING))
     await assert.rejects(placeBeside(f.recording, files('stale')), StaleFile)
     assert.deepEqual(await readdir(f.dir), [RECORDING])
   } finally {
