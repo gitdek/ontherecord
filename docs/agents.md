@@ -14,7 +14,7 @@ Reading, served by both endpoints:
 | `search` | Keyword search across notes, action items, transcripts, attached documents, the notebook and board updates, with the filters in [`docs/search.md`](search.md) (`status:`, `owner:` and `kind:` among them) and passages related by meaning. Use `in:screen` for indexed screen moments when enabled |
 | `list_meetings` | Every entry, newest first: id, title, `kind` (`meeting`, or another sort of recording such as `demo`), date, length, who was there, one-line summary, open action items |
 | `get_meeting` | One meeting's reviewed notes: summary, topics with timestamps, action items, next steps, uncertainties, files, and its `kind`. With `outline`, only its timeline: the topics and their times |
-| `get_transcript` | The lines of a meeting, optionally between two times, with the speaker named |
+| `get_transcript` | The lines of a meeting, optionally between two times, with the speaker named. For a meeting whose transcript the Mac is still writing, it says so and when to call again, or why writing it failed |
 | `get_screens` | What was on screen in a recording, in order, optionally between two times: the text read off each screen, with when it came up and when the next one replaced it. A screen that continues one given earlier gives only what it added or changed, unless `full_text` asks for every screen whole. With `with_transcript` it also gives what was said while each screen was up. For following a demo or a form step by step, and for counting or listing what was shown. Offered only when screen search is on, and only a recording whose screens were indexed has them ([`docs/screen-search.md`](screen-search.md)) |
 | `list_action_items` | The board, by status (`open`, `on_hold`, `done`, `canceled`, `all`), lane, person or meeting, with an id and a `rev` per item and the board's counts |
 | `get_action_item` | One item in full: state, hold, evidence and sources, a check that found nothing, what it replaces, its original wording, its history and the notebook entries linked to it |
@@ -66,7 +66,7 @@ A cancellation with its grounds looks like this:
 
 ## What to keep in mind
 
-- Transcripts are automatic and can mishear a name or a number. The reviewed notes are the reliable layer.
+- Transcripts are automatic and can mishear a name or a number. The reviewed notes are the reliable layer. A recording that came without a transcript gets one written on the Mac, and until it lands, `get_transcript` says where it stands ([`docs/transcripts.md`](transcripts.md)).
 - "Ada?" is a guessed speaker and "Speaker 3" an unnamed one.
 - Matching by meaning covers the meetings, their attached documents, the notebook and what the board says about each item.
 - The endpoint is stateless Streamable HTTP with JSON answers, and both addresses speak two eras of MCP: 2026-07-28, where every request carries its protocol version and `server/discover` describes the server, and the older 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 revisions, which open with `initialize`.
