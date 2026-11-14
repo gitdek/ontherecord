@@ -161,7 +161,7 @@ export async function pinFolder(dir: string, allowLink = false): Promise<PinnedF
 // macOS refuses a path with a symlink in ANY component when opened with O_NOFOLLOW_ANY (O_NOFOLLOW checks only
 // the last one, and the two can't be combined), so a folder swapped for a link, even mid-scan, can't bring
 // outside files in. Elsewhere only the last component is checked.
-const NOFOLLOW = process.platform === 'darwin' ? 0x20000000 : constants.O_NOFOLLOW
+export const NOFOLLOW = process.platform === 'darwin' ? 0x20000000 : constants.O_NOFOLLOW
 
 // What a file really is, opened the safe way: undefined for anything but a regular file reached without links.
 async function identify(path: string) {
