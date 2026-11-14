@@ -46,7 +46,7 @@ The meeting's **Files** tab says when one is waiting its turn, being written, or
 
 ## What leaves the Mac
 
-Nothing. FFmpeg reads the recording as a plain local file, handed to it already open, and writes the sound to `DATA_DIR/transcribe/`, which is removed when the job ends. The speech model runs on the Mac with no network: the job gets only `PATH`, `HOME`, `TMPDIR`, `LANG` and, when they are set, `HF_HOME` and `HF_HUB_CACHE` to find the model, and none of the server's other settings or keys.
+Nothing, from the job. FFmpeg reads the recording as a plain local file, handed to it already open, and writes the sound to `DATA_DIR/transcribe/`, which is removed when the job ends. The speech model runs on the Mac with no network: the job gets only `PATH`, `HOME`, `TMPDIR`, `LANG` and, when they are set, `HF_HOME` and `HF_HUB_CACHE` to find the model, and none of the server's other settings or keys. The transcript it places is a file in the folder like any other, so a copy of the folder made with `BACKUP_DIR` takes it along, wherever that copy is kept.
 
 ## Limits
 
