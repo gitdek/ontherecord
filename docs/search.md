@@ -1,6 +1,6 @@
 # Search
 
-One search covers the reviewed notes, the action items, the transcripts, the documents attached to meetings, the notebook and what the board says about each item. It works by keyword, and by meaning when a local embedding model is running. **⌘K** opens it from any page, and agents reach the same index through the `search` tool.
+One search covers the notes, the action items, the transcripts, the documents attached to meetings, the notebook and what the board says about each item. It works by keyword, and by meaning when a local embedding model is running. **⌘K** opens it from any page, and agents reach the same index through the `search` tool.
 
 ## Keyword search
 
@@ -114,4 +114,4 @@ node --env-file-if-exists=.env scripts/eval-embeddings.ts models.json --passages
 ## Limits
 
 - The reranker takes about 3 seconds, so it votes on a settled search, never while typing.
-- Transcripts are automatic and can mishear a name or a number, which is why typo tolerance and meaning search exist. The reviewed notes are the reliable layer.
+- Transcripts are automatic and can mishear a name or a number, which is why typo tolerance and meaning search exist. Notes a person wrote or checked are the reliable layer.

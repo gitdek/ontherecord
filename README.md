@@ -9,9 +9,9 @@
   <img alt="Node 24.2 or newer" src="https://img.shields.io/badge/Node-24.2%2B-0b0a14?style=flat-square&labelColor=0b0a14&color=ff6b3d">
   <img alt="No npm dependencies" src="https://img.shields.io/badge/dependencies-0-0b0a14?style=flat-square&labelColor=0b0a14&color=ff6b3d">
   <img alt="Search by keyword and by meaning" src="https://img.shields.io/badge/search-keyword%20%C2%B7%20meaning-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
-  <img alt="Agents connect over MCP with 17 tools" src="https://img.shields.io/badge/agents-MCP%20%C2%B7%2017%20tools-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
+  <img alt="Agents connect over MCP with 18 tools" src="https://img.shields.io/badge/agents-MCP%20%C2%B7%2018%20tools-0b0a14?style=flat-square&labelColor=0b0a14&color=36e2c4">
   <img alt="Private behind Cloudflare Access" src="https://img.shields.io/badge/access-Cloudflare%20Access-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
-  <img alt="381 tests passing" src="https://img.shields.io/badge/tests-381%20passing-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
+  <img alt="387 tests passing" src="https://img.shields.io/badge/tests-387%20passing-0b0a14?style=flat-square&labelColor=0b0a14&color=9b87ff">
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
   Each recording becomes a tape that a small team and its agents can play, read, search and act on.
 </p>
 
-On the Record is a private meeting archive for a small team. It watches one folder on a Mac, matches each video to its reviewed notes and machine transcript, writes the transcript itself when a recording comes without one, works out who is speaking, and puts every topic and action item on the recording's timeline. One search covers the notes, the transcripts, the board and the notebook, by keyword and by meaning, with local models and optional on-screen search. Agents get the same archive over MCP. There are no npm dependencies and no build step, and it is served to two people through a Cloudflare Tunnel behind Cloudflare Access.
+On the Record is a private meeting archive for a small team. It watches one folder on a Mac, matches each video to its notes and machine transcript, writes the transcript itself when a recording comes without one, works out who is speaking, and puts every topic and action item on the recording's timeline. One search covers the notes, the transcripts, the board and the notebook, by keyword and by meaning, with local models and optional on-screen search. Agents get the same archive over MCP. There are no npm dependencies and no build step, and it is served to two people through a Cloudflare Tunnel behind Cloudflare Access.
 
 The archive is private, so every screenshot here shows a made-up one: a coffee roaster called Northwind. No meeting is in the repository. Recordings stay in `MEETINGS_DIR`, and caches, shared state and logs stay in `data/`, which git ignores.
 
@@ -39,7 +39,7 @@ Every meeting is a cassette on a shelf, newest first and grouped by month, and s
 
 ### 🎚️ The deck and the topic river
 
-The player is a tape deck. An LCD shows the time and the topic on air, VU meters read the real audio, speeds run from 0.75× to 3×, captions sit on the video or roll as a teleprompter under it, and the scrubber shows a thumbnail under the pointer. Below it runs the **topic river**: the topics from the reviewed notes laid along the timeline, over the talk density and a film strip of the video's colours, with a flag at each action item. Every timestamp in the notes is a seek button, the transcript follows playback, **Copy link to this moment** shares the exact second, and a search inside the transcript marks its hits on the scrubber and the river. The screenshot above shows a meeting mid-play.
+The player is a tape deck. An LCD shows the time and the topic on air, VU meters read the real audio, speeds run from 0.75× to 3×, captions sit on the video or roll as a teleprompter under it, and the scrubber shows a thumbnail under the pointer. Below it runs the **topic river**: the topics from the notes laid along the timeline, over the talk density and a film strip of the video's colours, with a flag at each action item. Every timestamp in the notes is a seek button, the transcript follows playback, **Copy link to this moment** shares the exact second, and a search inside the transcript marks its hits on the scrubber and the river. The screenshot above shows a meeting mid-play.
 
 ### 📌 The board
 
@@ -73,7 +73,7 @@ Research, decisions and context that came up outside a meeting go in the noteboo
 
 ### 🤖 Agents
 
-An MCP server at `/mcp` gives agents the same archive through 17 tools. `gather_context` returns one cited brief on a topic, and `find_connections` ties a piece of current work to the meetings it touches. The server's own instructions teach the workflow: gather context, check where things stand, then record findings with their sources. `/mcp/readonly` serves the 11 reading tools, for agents that run unattended. Claude's apps, Claude Code, Codex, Hermes and any other agent that signs in with OAuth connect through a second address with the server's own sign-in, approved by a person on the site, and [Connect an agent](#connect-an-agent) has the block to paste into one. ChatGPT signs in through Cloudflare Access, and a script that can't sign in uses a service token. What an agent changes appears live for everyone signed in, credited to it ("Ada's agent").
+An MCP server at `/mcp` gives agents the same archive through 18 tools. `gather_context` returns one cited brief on a topic, and `find_connections` ties a piece of current work to the meetings it touches. The server's own instructions teach the workflow: gather context, check where things stand, then record findings with their sources. `/mcp/readonly` serves the 11 reading tools, for agents that run unattended. Claude's apps, Claude Code, Codex, Hermes and any other agent that signs in with OAuth connect through a second address with the server's own sign-in, approved by a person on the site, and [Connect an agent](#connect-an-agent) has the block to paste into one. ChatGPT signs in through Cloudflare Access, and a script that can't sign in uses a service token. What an agent changes appears live for everyone signed in, credited to it ("Ada's agent"). Asked to, an agent writes a meeting's notes from its transcript and saves them with `save_notes`: the notes are checked first, a newer edit by hand is never written over, and every version replaced is kept for `undo`.
 
 ### ✍️ Transcripts written on the Mac
 
@@ -130,12 +130,13 @@ Every address also has a `/mcp/readonly` door. [`docs/agents.md`](docs/agents.md
    transcript                                    └── board · notebook ◀─┘
 ```
 
-One Node process does all of it. The folder is watched, so a new file is on the shelf within a second or two. What people and agents write (the board, the notebook, speaker names) is kept apart from the meetings, in `data/`, and feeds back into the same library and search. The one thing the server adds to the folder is a transcript for a recording that has none.
+One Node process does all of it. The folder is watched, so a new file is on the shelf within a second or two. What people and agents write (the board, the notebook, speaker names) is kept apart from the meetings, in `data/`, and feeds back into the same library and search. The server adds to the folder only a transcript for a recording that has none, and the notes an agent saves.
 
 | Piece | What it does |
 | :-- | :-- |
 | `server/library.ts` · `server/check.ts` | Turns the folder into meetings: reads the index file, groups the files, watches for changes. `npm run check` prints the grouping |
-| `server/notes.ts` · `server/transcripts.ts` | Parse the reviewed notes and the transcripts: whisper JSON, bracketed text, caption exports |
+| `server/notes.ts` · `server/transcripts.ts` | Parse the notes and the transcripts: whisper JSON, bracketed text, caption exports |
+| `server/saved-notes.ts` | Notes an agent saves: checked, placed beside the recording or put in place of the notes file once the rev matches, every version replaced kept in `data/notes-history/` |
 | `server/media.ts` | Streams video by byte range, reads its facts with ffprobe, makes posters, hover sprites and colour strips in the background |
 | `server/search.ts` · `server/retrieval.ts` · `server/retrieval-source.ts` · `server/semantic.ts` · `server/text.ts` | Keyword and meaning indexes with shared query filters, where each hit comes from, and the passages transcripts are cut into |
 | `server/screens.ts` · `scripts/index-screens.ts` | Optional screen search: frames picked by ffmpeg, text read with macOS Vision, pictures matched by a local model or by Gemini through OpenRouter, each mode with its own index |
@@ -146,7 +147,7 @@ One Node process does all of it. The folder is watched, so a new file is on the 
 | `server/transcriber.ts` · `server/place.ts` · `scripts/transcribe.py` | Transcripts for recordings that have none: the sound heard by MLX Whisper on the Mac, and the files placed beside the recording without ever writing over one |
 | `server/speakers.ts` · `scripts/diarize.py` · `scripts/read-text.swift` | Who is speaking: voices told apart, names read off the screen |
 | `server/people.ts` · `server/topics.ts` | Participants and nicknames, and the threads that run across meetings |
-| `server/mcp.ts` · `server/mcp-tools.ts` | The MCP endpoint in both eras of the protocol, and its 17 tools with the instructions that teach the workflow |
+| `server/mcp.ts` · `server/mcp-tools.ts` | The MCP endpoint in both eras of the protocol, and its 18 tools with the instructions that teach the workflow |
 | `server/access.ts` | Checks Cloudflare Access's signed token on every request |
 | `server/connector.ts` | Signs agents in on the second hostname with OAuth 2.1, once a person approves them on the site |
 | `server/app.ts` · `server/index.ts` · `server/config.ts` | The app and its routes: pages, API, media, live updates, and its settings. `index.ts` only starts it |
@@ -155,7 +156,7 @@ One Node process does all of it. The folder is watched, so a new file is on the 
 
 A few decisions worth knowing:
 
-- **The folder is the only source of truth.** The server reads the meetings folder and never changes or removes anything in it. The one thing it adds is a transcript beside a recording that has none, under names that were free. With `BACKUP_DIR` set it copies the folder elsewhere, one way. Caches, the board, the notebook, backups and logs live in `data/`.
+- **The folder is the only source of truth.** The server reads the meetings folder and never removes a file a person put there. It adds a transcript beside a recording that has none, and an agent's notes for a meeting that has none, only under names that are free, and it replaces a notes file only when an agent saves over the version it read, keeping the one replaced in `data/notes-history/`. With `BACKUP_DIR` set it copies the folder elsewhere, one way. Caches, the board, the notebook, backups and logs live in `data/`.
 - **What can't be rebuilt is never saved over.** A board or notebook that can't be read, or holds records the code doesn't expect, stops startup and stays where it is. A file cut off mid-write is kept aside before that store starts empty. Daily verified snapshots and restore steps are in the [recovery runbook](docs/recovery.md).
 - **No dependencies, no build step.** Node runs the TypeScript directly and the browser loads plain ES modules. TypeScript itself is only a dev tool for the type check. A strict content security policy holds because there are no third-party scripts, fonts or CDNs.
 - **Canceled is not done, and not found is neither.** The board keeps the three apart, so clearing out old items never claims that work was finished.
@@ -180,7 +181,7 @@ Requires Node 24.2 or newer, and nothing from npm to run. `brew install ffmpeg` 
 
 | Variable | Purpose |
 | :-- | :-- |
-| `MEETINGS_DIR` | The folder of recordings, notes and transcripts. The server reads it, and adds only a transcript beside a recording that has none |
+| `MEETINGS_DIR` | The folder of recordings, notes and transcripts. The server reads it, and writes only a transcript for a recording that has none and the notes an agent saves |
 | `PORT` · `HOST` | Where the server listens. Default `127.0.0.1:8797` |
 | `ACCESS_TEAM` · `ACCESS_AUD` | The Cloudflare Access team domain and the application's audience tag. Several tags, comma separated, are accepted |
 | `ACCESS_USERS` · `ACCESS_SERVICE_TOKENS` | Who may sign in, as `email=Name`, and which agents' service tokens are accepted, as `<client id>=<name>`, with `:write` to let one change things |
@@ -221,7 +222,7 @@ The rest is in `docs/`:
 | [`docs/screen-search.md`](docs/screen-search.md) | Screen-frame indexing, the local and hosted picture models, what leaves the Mac, how matches are judged |
 | [`docs/transcripts.md`](docs/transcripts.md) | Transcripts the Mac writes for recordings that have none: what is written and where, the settings, the limits |
 | [`docs/speakers.md`](docs/speakers.md) | How voices get names, and the one-time setup |
-| [`docs/agents.md`](docs/agents.md) | The 17 tools, the workflow, connecting Claude, Codex and Hermes, the connector's sign-in |
+| [`docs/agents.md`](docs/agents.md) | The 18 tools, the workflow, writing a meeting's notes, connecting Claude, Codex and Hermes, the connector's sign-in |
 | [`docs/cloudflare.md`](docs/cloudflare.md) | The Access application, the tunnel, the connector hostname and its rate limit, Managed OAuth, service tokens, checks |
 | [`docs/security.md`](docs/security.md) | Who gets in and what other sites and agents can do |
 | [`docs/recovery.md`](docs/recovery.md) | Backup verification, state recovery and restoring the meetings folder |
@@ -231,7 +232,7 @@ The rest is in `docs/`:
 
 **2026-11-13.** In daily use by two people and their agents since November 2026. A security review and two audits that month are behind most of what [`docs/security.md`](docs/security.md) and [`docs/recovery.md`](docs/recovery.md) describe.
 
-Still rough: **Ask** waits for a local chat model to be installed. Transcripts written on the Mac have been tried on made-up recordings only. Screen search runs on the Mac and has been tried on one real recording. Both thresholds were set on made-up frames, and a search worded differently from its slide finds it about a third of the time. The board, the notebook, the speaker names and the meetings folder can have a second copy in another folder, but `.env`, the model keys and the agents' sign-ins are in no copy. The stylesheet and the meeting page are large single files.
+Still rough: **Ask** waits for a local chat model to be installed. Transcripts written on the Mac, and notes an agent saves with `save_notes`, have been tried on made-up recordings only. Screen search runs on the Mac and has been tried on one real recording. Both thresholds were set on made-up frames, and a search worded differently from its slide finds it about a third of the time. The board, the notebook, the speaker names and the meetings folder can have a second copy in another folder, but `.env`, the model keys and the agents' sign-ins are in no copy. The stylesheet and the meeting page are large single files.
 
 <br>
 

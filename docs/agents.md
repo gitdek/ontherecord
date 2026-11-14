@@ -1,6 +1,6 @@
 # Agents (MCP)
 
-Agents get the same archive as the web app through a Model Context Protocol server. `/mcp` serves 17 tools. `/mcp/readonly` serves the 11 that only read. One of them, `get_screens`, is offered only while screen search is on. What an agent changes shows up live for everyone signed in, credited to the agent ("Ada's agent", "Grace's Hermes").
+Agents get the same archive as the web app through a Model Context Protocol server. `/mcp` serves 18 tools. `/mcp/readonly` serves the 11 that only read. One of them, `get_screens`, is offered only while screen search is on. What an agent changes shows up live for everyone signed in, credited to the agent ("Ada's agent", "Grace's Hermes").
 
 The server explains itself: its initialization instructions teach the workflow below, so a new assistant does not need this page to behave well. This page is for the people connecting one.
 
@@ -13,7 +13,7 @@ Reading, served by both endpoints:
 | `gather_context` | One cited brief on a topic: requirements, decisions, action items with their status and board updates, next steps, open questions, attached documents and notebook entries, grouped by meeting in date order. The heading of an entry that is not a meeting names its kind, as in `(demo)`. Text from the notebook and from documents is quoted, and what the board says stays on its item's lines, so none of it can pass for the brief's own headings or items. Add `include_screen: true` for indexed frames when enabled |
 | `search` | Keyword search across notes, action items, transcripts, attached documents, the notebook and board updates, with the filters in [`docs/search.md`](search.md) (`status:`, `owner:` and `kind:` among them) and passages related by meaning. Use `in:screen` for indexed screen moments when enabled |
 | `list_meetings` | Every entry, newest first: id, title, `kind` (`meeting`, or another sort of recording such as `demo`), date, length, who was there, one-line summary, open action items |
-| `get_meeting` | One meeting's reviewed notes: summary, topics with timestamps, action items, next steps, uncertainties, files, and its `kind`. With `outline`, only its timeline: the topics and their times |
+| `get_meeting` | One meeting's notes: summary, topics with timestamps, action items, next steps, uncertainties, files, and its `kind`. Its `notes_rev` is what `save_notes` takes to replace them, and `notes_saved` says who saved them and when, if an agent did. With `outline`, only its timeline: the topics and their times |
 | `get_transcript` | The lines of a meeting, optionally between two times, with the speaker named. For a meeting whose transcript the Mac is still writing, it says so and when to call again, or why writing it failed |
 | `get_screens` | What was on screen in a recording, in order, optionally between two times: the text read off each screen, with when it came up and when the next one replaced it. A screen that continues one given earlier gives only what it added or changed, unless `full_text` asks for every screen whole. With `with_transcript` it also gives what was said while each screen was up. For following a demo or a form step by step, and for counting or listing what was shown. Offered only when screen search is on, and only a recording whose screens were indexed has them ([`docs/screen-search.md`](screen-search.md)) |
 | `list_action_items` | The board, by status (`open`, `on_hold`, `done`, `canceled`, `all`), lane, person or meeting, with an id and a `rev` per item and the board's counts |
@@ -32,6 +32,7 @@ Writing, served by `/mcp` only:
 | `save_note` | Saves a Markdown note linked to meetings and action items |
 | `update_note` | Appends to a note, or replaces its body, title, tags or links. The last 20 versions are kept, links included, and `if_version` refuses an edit made on an older copy |
 | `delete_note` | Removes a note from view. It can be restored from the web app until 500 newer deletions push it out or the notebook needs its room, and it no longer counts toward the notebook's limits |
+| `save_notes` | Writes a meeting's notes file, or replaces it given the `notes_rev` read with `get_meeting`. The notes are checked before anything is kept, every version replaced is kept, and `undo: true` puts back the one before the last save. It never writes a transcript ([Writing a meeting's notes](#writing-a-meetings-notes)) |
 
 ## The workflow the server teaches
 
@@ -66,10 +67,51 @@ A cancellation with its grounds looks like this:
 
 ## What to keep in mind
 
-- Transcripts are automatic and can mishear a name or a number. The reviewed notes are the reliable layer. A recording that came without a transcript gets one written on the Mac, and until it lands, `get_transcript` says where it stands ([`docs/transcripts.md`](transcripts.md)).
+- Transcripts are automatic and can mishear a name or a number. Notes a person wrote or checked are the reliable layer, and notes an agent saved say so in `notes_saved`. A recording that came without a transcript gets one written on the Mac, and until it lands, `get_transcript` says where it stands ([`docs/transcripts.md`](transcripts.md)).
 - "Ada?" is a guessed speaker and "Speaker 3" an unnamed one.
 - Matching by meaning covers the meetings, their attached documents, the notebook and what the board says about each item.
 - The endpoint is stateless Streamable HTTP with JSON answers, and both addresses speak two eras of MCP: 2026-07-28, where every request carries its protocol version and `server/discover` describes the server, and the older 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 revisions, which open with `initialize`.
+
+## Writing a meeting's notes
+
+When a person asks, an agent connected to `/mcp` writes a meeting's notes and saves them with `save_notes`. It reads the whole transcript first (`get_transcript`, calling again from where `truncated` says until the end, and `get_screens` too when screen search is on), writes only what was said, saves, and tells the person what it saved. The notes are plain text in the shape the archive reads:
+
+```text
+MEETING NOTES: Northwind weekly sync
+November 10, 2026 | Recording: 2:19 | Substantive discussion approximately 0:00–2:14
+Participants: Ada Byron, Linus Pauling
+
+SUMMARY
+The holiday blend doubles to 400 kilos from the first week of December, priced as last year.
+
+HOLIDAY BLEND AND GRINDERS
+1. Holiday blend volume and price (0:15–0:53)
+- Last year's blend sold out in nine days; this year's is 400 kilos.
+2. Grinder shipping quotes (0:53–1:18)
+- Kestrel Freight quoted $1,200; Acme ships free for six grinders.
+
+ACTION ITEMS
+- Linus: Confirm the delivery date with the importer by Friday. (0:33–0:42)
+- Ada: Send both grinder quotes to Grace before Wednesday. (1:06–1:11)
+
+UNCERTAINTIES
+- Whether Acme's offer at 1:00 was six grinders or sixteen is unclear.
+```
+
+What the server holds the notes to:
+
+- **Checked before anything is kept.** The text starts with `MEETING NOTES:`, its second line gives the meeting's own date, it has a summary and at least one topic with its times, every time lies inside the recording, every action item starts with its owner, it is at most 100,000 characters, and nothing in it looks like a credential or names another meeting's recording. A refusal says what to change, and nothing is written.
+- **The title stays the meeting's own,** so its id and links do not move, and the server sets one header line itself, `Saved by Ada's agent on 2026-11-14.`, in place of its own earlier one.
+- **New notes go beside the recording** as `<recording> - notes.txt`, only where that name is free. A meeting that `meetings-index.json` lists gets none this way: the index says which files are its.
+- **Replacing needs the rev.** A meeting that has notes takes `if_rev`, the `notes_rev` from `get_meeting`. The file is replaced in one step, and only while it is still that version, so a newer edit by hand is never written over: a refused save gives the rev as it is now.
+- **Every version is kept.** The one replaced goes into `data/notes-history/` on the Mac with who saved the new one, when and why (`reason`), hand edits made in between included. `undo: true` puts back the version before the last save, and after a first save takes the notes out again. The pages and `get_meeting` say who saved the notes while they are still that version.
+- **The board follows.** Action items in saved notes go on the board as soon as the tool answers, like those of any notes.
+
+```json
+{ "meeting_id": "2026-11-10-northwind-weekly-sync", "notes": "MEETING NOTES: Northwind weekly sync\n…", "reason": "written from the transcript" }
+```
+
+**A scheduled agent that keeps notes current.** Once a day: `list_meetings`, and for each meeting with `has_transcript` true and `has_notes` false, newest first, read the whole transcript, write the notes and save them with the `reason` "daily notes run". Then save one notebook note listing what it wrote, with the meetings linked, so the people see it. It needs `/mcp`, the door that writes, so connect it as one person's agent and give it only this job.
 
 ## Connecting
 

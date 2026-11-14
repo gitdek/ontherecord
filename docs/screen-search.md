@@ -2,7 +2,7 @@
 
 **On screen** in Search and `in:screen` find frames in indexed recordings. A hit
 opens the exact video at the frame's playback time. Use `in:screen in:notes` to
-include reviewed notes in the same search. The text index and the picture index
+include the notes in the same search. The text index and the picture index
 rank separately and the app combines their ranks.
 
 Agents have three ways in. `search` with `in:screen` finds a moment: a match

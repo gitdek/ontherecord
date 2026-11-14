@@ -2,7 +2,7 @@
 
 The server watches `MEETINGS_DIR` and rebuilds within a second or two when anything changes (and every minute regardless). Open browsers update live.
 
-The server reads that folder and never changes or removes anything in it. The one thing it adds is a transcript beside a recording that has none, when `TRANSCRIBE_PYTHON` is set: two new files, placed only where their names are free ([Transcripts](transcripts.md)). What people and agents add later (the board, the notebook, speaker names) and every cache live in `data/`, so the archive can be rebuilt from the folder at any time.
+The server reads that folder, and writes to it in two cases only. It adds a transcript beside a recording that has none, when `TRANSCRIBE_PYTHON` is set ([Transcripts](transcripts.md)). And notes an agent saves with `save_notes` land beside the recording of a meeting that has none, or replace its notes file when the agent saves over the version it read; every version replaced is kept in `data/notes-history/` ([Writing a meeting's notes](agents.md#writing-a-meetings-notes)). New files go in only under names that are free, and a file a person put in the folder is never removed. What people and agents add later (the board, the notebook, speaker names) and every cache live in `data/`, so the archive can be rebuilt from the folder at any time.
 
 ## Which files belong together
 
@@ -18,7 +18,7 @@ A meeting the index doesn't list yet is named by its date and the best title its
 Most entries are meetings. An entry can also be a product demo, a training, a walkthrough or another sort of recording, and its kind says which. The kind comes from the first of these that gives one:
 
 1. A `"kind"` key on the entry's session in `meetings-index.json`, such as `"kind": "demo"`.
-2. A `Kind: Demo` line among the header lines of the reviewed notes, the ones before the first ALL-CAPS section. That line is not shown as part of the notes.
+2. A `Kind: Demo` line among the header lines of the notes, the ones before the first ALL-CAPS section. That line is not shown as part of the notes.
 3. Otherwise it is a meeting. The kind is never guessed from a title or a file name.
 
 A kind is a free label, not a fixed list: `demo`, `training` and `site visit` all work. It is kept in lowercase, with letters, digits, hyphens and single spaces only, and at most 24 characters. A value with nothing usable left in it counts as not given. An entry that is not a meeting shows its kind as a small label on its shelf card, on its page and beside its title in search results. Search finds entries by it with `kind:` (see [Search](search.md)), and agents get it from `list_meetings` and `get_meeting`.
@@ -45,7 +45,7 @@ Each key is a first name, and its list holds the other ways that name is written
 
 | Kind | Shape |
 | :-- | :-- |
-| Reviewed notes (`.txt`) | A `MEETING NOTES:` title, an optional `Kind:` line, ALL-CAPS sections, numbered topics with `(mm:ss–mm:ss)` ranges, `- Owner: task` action items |
+| Notes (`.txt`) | A `MEETING NOTES:` title, an optional `Kind:` line, ALL-CAPS sections, numbered topics with `(mm:ss–mm:ss)` ranges, `- Owner: task` action items |
 | Whisper JSON | `{"segments":[{"start","end","text"}]}`, timed as offsets into the recording |
 | Bracketed transcript | `[hh:mm:ss - hh:mm:ss] text`, timed as offsets into the recording |
 | Speaker-labelled transcript | `hh:mm:ss --> hh:mm:ss` blocks with the platform's speaker labels, on a wall clock |

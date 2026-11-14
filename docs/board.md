@@ -1,6 +1,6 @@
 # The board
 
-"Who said they'd do what": every action item from every set of reviewed notes, plus tasks added by hand or by an agent. The web board, the JSON API and the MCP tools all go through the same code (`server/tasks.ts`), so they always agree on what is open.
+"Who said they'd do what": every action item from every set of meeting notes, plus tasks added by hand or by an agent. The web board, the JSON API and the MCP tools all go through the same code (`server/tasks.ts`), so they always agree on what is open.
 
 Items owned by the archive's own people (`CREW`) sit in the lane **On us**. Everyone else's sit in **Waiting on them**. Changes are shared live between both people and their agents.
 
