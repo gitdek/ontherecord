@@ -156,7 +156,7 @@ test('connector: approve, trade the code with PKCE, and work as the person’s a
   assert.deepEqual([tokens.token_type, tokens.scope, tokens.expires_in], ['Bearer', 'write', 3600])
   const list = await connector('POST', '/mcp', mcp(tokens.access_token, 'tools/list'))
   assert.equal(list.status, 200, list.body)
-  assert.equal(list.json().result.tools.length, 16)
+  assert.equal(list.json().result.tools.length, 17)
   const added = await connector('POST', '/mcp', mcp(tokens.access_token, 'tools/call', { name: 'add_action_item', arguments: { text: 'Order the banner', owner: 'Ada' } }))
   assert.deepEqual([added.status, added.json().result.isError], [200, undefined], added.body)
   const board = (await site('GET', '/api/actions')).json() as { actions: { text: string; createdBy?: string }[] }

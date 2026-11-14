@@ -131,6 +131,20 @@ test('a meeting with no transcript says on its Files tab whether one is waiting,
   assert.doesNotMatch(String(filesView({ ...m, transcripts: [{ id: 't', label: 'Transcript', words: 17, synced: true, files: [] }], transcribing: null }, null, 'Ada’s Mac')), /No transcript yet/)
 })
 
+test('the Files tab says who saved notes an agent wrote, and how a meeting with a transcript gets its notes', async () => {
+  const { filesView } = await import('../js/views/meeting.js')
+  const m = { videos: [], docs: [], date: '2026-11-03', title: 'Roast review', transcribing: null }
+  const transcript = [{ id: 't', label: 'Transcript', words: 17, synced: true, files: [] }]
+  const page = (o) => String(filesView({ ...m, ...o }, null, 'Ada’s Mac'))
+  assert.match(page({ transcripts: transcript, notesFile: null }), /<p class="muted">No notes yet\. Ask an agent connected to the archive to write them\.<\/p>/)
+  assert.match(page({ transcripts: [], notesFile: null }), /<p class="muted">No notes yet\. When a notes file lands in the folder it shows up here on its own\.<\/p>/)
+  const saved = page({ transcripts: transcript, notesFile: { name: 'Roast review - notes.txt', url: '/media/n?download=1' }, notesSaved: { by: "Ada's agent", at: '2026-11-14T15:00:00.000Z', reason: 'from the transcript' } })
+  assert.match(saved, /<b>Notes<\/b><span>Roast review - notes\.txt<small class="saved-by">Saved by Ada&#39;s agent on 2026-11-1\d · from the transcript<\/small><\/span>/)
+  // notes nobody saved through the tool say only what they are
+  assert.match(page({ transcripts: transcript, notesFile: { name: 'Roast review - notes.txt', url: '/media/n?download=1' }, notesSaved: null }), /<b>Notes<\/b><span>Roast review - notes\.txt<\/span>/)
+  assert.doesNotMatch(saved, /[Rr]eviewed/)
+})
+
 test('the Lab lists the cautions of the library as it is now', async (t) => {
   t.mock.method(globalThis, 'fetch', async (path) => Response.json(path === '/api/lab' ? { meetings: [], ffmpeg: true, loose: [] } : { enabled: false }))
   const caution = "x - transcript.json can't be read, so what it holds is left out"

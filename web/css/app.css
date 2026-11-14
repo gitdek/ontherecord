@@ -3191,6 +3191,14 @@ button.sp:hover {
 .frow span {
   color: var(--muted);
 }
+/* who saved a meeting's notes, when an agent did */
+.frow .saved-by {
+  display: block;
+  margin-top: 2px;
+}
+.notes > .saved-by {
+  margin: 6px 0 0;
+}
 .frow-links {
   display: flex;
   gap: 12px;

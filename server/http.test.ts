@@ -271,7 +271,7 @@ test("mcp: every tool says what it is for, in the archive's own names, without c
   assert.deepEqual(tool('delete_action_item').annotations, { readOnlyHint: false, destructiveHint: true, idempotentHint: true })
   // the whole list rides along with every conversation (with screen search on there is one more tool, and
   // screens-local.test.ts holds that list to its own size)
-  assert.ok(JSON.stringify(tools).length < 15_200, `${JSON.stringify(tools).length} characters`)
+  assert.ok(JSON.stringify(tools).length < 16_550, `${JSON.stringify(tools).length} characters`)
   assert.deepEqual(ro.map((t) => t.name), tools.filter((t) => t.annotations.readOnlyHint).map((t) => t.name))
   for (const name of ['search', 'gather_context', 'list_action_items', 'get_action_item', 'find_connections']) assert.ok(ro.some((t) => t.name === name), name)
 })

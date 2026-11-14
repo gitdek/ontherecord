@@ -19,7 +19,7 @@ import { allActions, canonical, findAction, reconcile } from './tasks.ts'
 
 // each door, and how many tools it lists
 const DOORS = [
-  { path: '/mcp', tools: 16 },
+  { path: '/mcp', tools: 17 },
   { path: '/mcp/readonly', tools: 10 },
 ]
 const VERSIONS = ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']

@@ -615,8 +615,8 @@ test('an assistant reads what was on screen in order, between two times, and is 
   assert.ok((await door(app, 'tools/list')).tools.some((tool: { name: string }) => tool.name === 'get_screens'))
   // the list rides along with every conversation: the screen tool costs it about a thousand characters
   const everyTool = (await requestApp(app, '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })).json().result.tools
-  assert.equal(everyTool.length, 17)
-  assert.ok(JSON.stringify(everyTool).length < 16_500, `${JSON.stringify(everyTool).length} characters`)
+  assert.equal(everyTool.length, 18)
+  assert.ok(JSON.stringify(everyTool).length < 17_850, `${JSON.stringify(everyTool).length} characters`)
   assert.match((await door(app, 'initialize')).instructions, /get_screens reads a recording's screens in order/)
 
   const all = await mcp(app, 'get_screens', { meeting_id: meeting })

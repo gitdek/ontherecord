@@ -57,7 +57,7 @@ export function card(app, m, i) {
           ${kindLabel(m.kind)}
           ${m.processing ? html`<i class="chip warn" title="A video here is still being written">writing…</i>` : ''}
           <i class="chip">${fmtDur(m.duration)}</i>
-          ${m.has.notes ? html`<i class="chip on" title="Reviewed notes">notes</i>` : html`<i class="chip" title="No reviewed notes yet">no notes</i>`}
+          ${m.has.notes ? html`<i class="chip on" title="Notes">notes</i>` : html`<i class="chip" title="No notes yet">no notes</i>`}
           ${m.actions.open ? html`<i class="chip hot" title="Open action items on ${crewOf(app)}">${m.actions.open} on us</i>` : ''}
         </span>
       </div>

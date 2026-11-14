@@ -18,6 +18,7 @@ import { Mirror } from './mirror.ts'
 import { handleMcp } from './mcp.ts'
 import { Notebook, NoteConflict, NoteError, versionOf, type Note } from './notebook.ts'
 import { meaning } from './retrieval.ts'
+import { SavedNotes } from './saved-notes.ts'
 import { ScreenSearch } from './screens.ts'
 import { SearchIndex } from './search.ts'
 import { chunksOf, Reranker, Semantic } from './semantic.ts'
@@ -141,6 +142,8 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     broadcast('writing', { meetings: ids })
     if (placed) schedule('transcript written', 0)
   })
+  // meetings' notes saved by agents through save_notes, and the versions they replaced
+  const savedNotes = new SavedNotes(config.dataDir)
   const parseCache: ParseCache = new Map()
   const thumbs = new Map<string, { base: string; strip: Strip; poster: string; sprite: string }>()
   // what start() set going, so close() can stop it
@@ -369,6 +372,8 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
       // so a reworded item's line still finds its checkbox
       lineActions: Object.fromEntries(m.actions.map((a) => [a.id, canonical(store, a.id)])),
       notesFile: m.notesFile ? { id: m.notesFile.id, name: m.notesFile.name, url: fileUrl(m.notesFile.id, true) } : null,
+      // who saved the notes, when an agent did through save_notes and they are still that version
+      notesSaved: savedNotes.saved(m) ?? null,
       topics: m.topics,
       actions: actions.filter((a) => a.meeting?.id === m.id),
       videos: m.videos.map((v) => {
@@ -499,6 +504,9 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     reranker,
     speakers,
     transcriber,
+    savedNotes,
+    // the folder read again at once after notes are saved, so the board has their action items when the tool answers
+    notesChanged: () => refresh('notes saved'),
     lookups,
     notebookChanged,
   }
@@ -1154,6 +1162,7 @@ export async function createApp(config: Config, opts: AppOptions = {}) {
     await media.load()
     await speakers.load()
     await transcriber.load()
+    await savedNotes.load()
     await refresh('startup').catch(async (err) => {
       failed(err)
       lib = await buildLibrary([], () => ({}), config.crew, parseCache)

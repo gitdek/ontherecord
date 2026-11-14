@@ -644,6 +644,7 @@ function notesView(app, m) {
   const source = n.sections.filter((s) => s.role === 'source')
   return html`<div class="notes">
     <div class="meta-chips">${n.meta.map((x) => html`<span class="mchip">${linkTimes(x, base)}</span>`)}</div>
+    ${m.notesSaved ? html`<p class="muted small saved-by">${savedLine(m.notesSaved)}</p>` : ''}
     ${n.sections.map(section)}
     <details class="fineprint"><summary>How these notes were made</summary>
       ${n.intro.map((l) => html`<p>${linkTimes(l.text, base)}</p>`)}
@@ -1032,6 +1033,15 @@ function transcriptPane(pane, o) {
 
 // ---------- files ----------
 
+// Who saved a meeting's notes and when, for notes an agent saved through save_notes: "Saved by Ada’s agent on
+// 2026-11-14 · tidied the action items". The day is this browser's own.
+export const savedLine = (saved) => {
+  if (!saved) return ''
+  const d = new Date(saved.at)
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return html`Saved by ${saved.by} on ${day}${saved.reason ? ` · ${saved.reason}` : ''}`
+}
+
 // What the Files tab says while a meeting has no transcript: one being written on the Mac, one waiting its turn,
 // or why writing one failed.
 export const noTranscript = (job, mac) =>
@@ -1077,7 +1087,7 @@ export function filesView(m, current, mac) {
         <span class="frow-links">${t.files.map((f) => html`<a href="${f.url}" download>.${f.name.split('.').pop()} <small>${fmtBytes(f.size)}</small></a>`)}<a href="/captions/${t.id}.vtt" download="${m.date} ${m.title.replace(/[/\\:*?"<>|]+/g, '-')}.vtt">.vtt captions</a></span></div>`,
     )}
     <h3>Notes &amp; documents</h3>
-    ${m.notesFile ? html`<div class="frow"><b>Reviewed notes</b><span>${m.notesFile.name}</span><span class="frow-links"><a href="${m.notesFile.url}" download>.txt</a></span></div>` : html`<p class="muted">No reviewed notes yet. When a notes file lands in the folder it shows up here on its own.</p>`}
+    ${m.notesFile ? html`<div class="frow"><b>Notes</b><span>${m.notesFile.name}${m.notesSaved ? html`<small class="saved-by">${savedLine(m.notesSaved)}</small>` : ''}</span><span class="frow-links"><a href="${m.notesFile.url}" download>.txt</a></span></div>` : html`<p class="muted">${m.transcripts.length ? 'No notes yet. Ask an agent connected to the archive to write them.' : 'No notes yet. When a notes file lands in the folder it shows up here on its own.'}</p>`}
     ${m.docs.map((d) => html`<div class="frow"><b>Excerpt</b><span>${d.name}</span><span class="frow-links"><a href="${d.download}" download>.txt</a></span></div>`)}
     <p class="muted small">Downloads come straight from the folder on ${mac}, through the tunnel. Big originals can take a while; the browsing copy is usually all you need.</p>
   </div>`

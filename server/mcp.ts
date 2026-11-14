@@ -25,7 +25,7 @@ const serverInfo = (crew: string, version: string) => ({
   name: 'on-the-record',
   title: `On the Record: ${crew}'s meetings`,
   version: '0.3.0',
-  ...(version >= '2025-11-25' ? { description: `A private archive of ${crew}'s recorded meetings: reviewed notes, machine transcripts, a shared board of action items and a shared notebook.` } : {}),
+  ...(version >= '2025-11-25' ? { description: `A private archive of ${crew}'s recorded meetings: meeting notes, machine transcripts, a shared board of action items and a shared notebook.` } : {}),
 })
 
 // A 2026-07-28 result says it is complete (this server never comes back asking for more) and who sent it. The lists
